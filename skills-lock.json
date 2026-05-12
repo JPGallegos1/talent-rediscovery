@@ -25,6 +25,12 @@
       "skillPath": "skills/mvp/SKILL.md",
       "computedHash": "5bd0d7b9b38ae992aad0ec06b2e0853ea7f45904a976ba5e981d6a54e73f9127"
     },
+    "prototype": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/prototype/SKILL.md",
+      "computedHash": "9923f050edb131e5604fcb6d63bd281221de121d48c500296b405ab9738c91a3"
+    },
     "tdd": {
       "source": "mattpocock/skills",
       "sourceType": "github",
