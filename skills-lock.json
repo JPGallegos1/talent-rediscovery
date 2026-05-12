@@ -43,6 +43,12 @@
       "skillPath": "skills/engineering/to-prd/SKILL.md",
       "computedHash": "a80acb8760af6521a37ea4f079e617712fcaa800f8a766e247f815c5dabb20d2"
     },
+    "triage": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/triage/SKILL.md",
+      "computedHash": "3fbf8845d2cdf18615f0f76768753a659358efbc2f225275b61ee924cbe7f388"
+    },
     "validate-idea": {
       "source": "slavingia/skills",
       "sourceType": "github",
