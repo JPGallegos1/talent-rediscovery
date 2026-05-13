@@ -1,4 +1,5 @@
 import { parseCsvTalentPool } from "./csv-candidate-records.js";
+import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "./message-draft.js";
 import { interpretSearchCriteria } from "./search-criteria.js";
 
 const shell = document.querySelector("[data-prototype-shell]");
@@ -14,8 +15,15 @@ const searchStatus = document.querySelector("[data-search-status]");
 const submittedSearch = document.querySelector("[data-submitted-search]");
 const submittedSearchRequest = document.querySelector("[data-submitted-search-request]");
 const searchCriteria = document.querySelector("[data-search-criteria]");
+const messageDraftPanel = document.querySelector("[data-message-draft-panel]");
+const messageDraftButton = document.querySelector("[data-message-draft-button]");
+const messageDraftTextarea = document.querySelector("[data-message-draft]");
+const messageDraftStatus = document.querySelector("[data-message-draft-status]");
+const suggestedNextAction = document.querySelector("[data-suggested-next-action]");
 
 let talentPool = null;
+let currentSearchRequest = "";
+let draftableMatch = null;
 
 if (shell) {
   shell.dataset.ready = "true";
@@ -64,8 +72,25 @@ searchForm?.addEventListener("submit", (event) => {
     return;
   }
 
+  currentSearchRequest = searchRequest;
   renderSubmittedSearch(searchRequest, interpretSearchCriteria(searchRequest));
+  renderMessageDraftHook();
   setSearchStatus("Search Request submitted. Matching and Shortlist generation are out of scope for this slice.");
+});
+
+messageDraftButton?.addEventListener("click", () => {
+  if (!draftableMatch || !messageDraftTextarea) {
+    return;
+  }
+
+  try {
+    messageDraftTextarea.value = draftMessageFromMatch(draftableMatch);
+    messageDraftTextarea.removeAttribute("hidden");
+    setMessageDraftStatus("Draft created for recruiter review. It has not been sent and can be edited before use.");
+    messageDraftTextarea.focus();
+  } catch (error) {
+    setMessageDraftStatus(error instanceof Error ? error.message : "The message draft could not be created.", true);
+  }
 });
 
 function isCsvFile(file) {
@@ -133,6 +158,8 @@ function formatExperience(value) {
 
 function clearPreview() {
   talentPool = null;
+  currentSearchRequest = "";
+  draftableMatch = null;
   previewPanel?.setAttribute("hidden", "");
   recordGrid?.replaceChildren();
   if (recordCount) {
@@ -140,6 +167,11 @@ function clearPreview() {
   }
   submittedSearch?.setAttribute("hidden", "");
   searchCriteria?.replaceChildren();
+  messageDraftPanel?.setAttribute("hidden", "");
+  messageDraftTextarea?.setAttribute("hidden", "");
+  if (messageDraftTextarea) {
+    messageDraftTextarea.value = "";
+  }
   updateSearchAvailability();
 }
 
@@ -204,6 +236,49 @@ function setSearchStatus(message, isError = false) {
 
   searchStatus.textContent = message;
   searchStatus.dataset.state = isError ? "error" : "ready";
+}
+
+function renderMessageDraftHook() {
+  if (!messageDraftPanel || !messageDraftButton || !talentPool || !currentSearchRequest) {
+    return;
+  }
+
+  draftableMatch = createDraftableMatch(talentPool.candidateRecords[0], currentSearchRequest);
+  const isDraftable = canDraftMessageFromSuggestedNextAction(draftableMatch.suggestedNextAction);
+
+  if (suggestedNextAction) {
+    suggestedNextAction.textContent = draftableMatch.suggestedNextAction;
+  }
+
+  messageDraftButton.disabled = !isDraftable;
+  messageDraftPanel.hidden = false;
+  messageDraftTextarea?.setAttribute("hidden", "");
+  if (messageDraftTextarea) {
+    messageDraftTextarea.value = "";
+  }
+
+  setMessageDraftStatus(
+    isDraftable
+      ? "This contact-oriented Suggested Next Action can create an editable draft. Review before using; Talent Rediscovery will not send it."
+      : "Message drafts are unavailable unless the Suggested Next Action is to contact or recontact.",
+  );
+}
+
+function createDraftableMatch(candidateRecord, searchRequest) {
+  return {
+    candidateRecord,
+    searchRequest,
+    suggestedNextAction: "Recontact this Candidate to validate current interest and availability.",
+  };
+}
+
+function setMessageDraftStatus(message, isError = false) {
+  if (!messageDraftStatus) {
+    return;
+  }
+
+  messageDraftStatus.textContent = message;
+  messageDraftStatus.dataset.state = isError ? "error" : "ready";
 }
 
 updateSearchAvailability();

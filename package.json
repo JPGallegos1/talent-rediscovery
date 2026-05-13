@@ -10,8 +10,9 @@
   },
   "scripts": {
     "dev": "node scripts/dev-server.js",
-    "check": "node --check scripts/dev-server.js && node --check src/csv-candidate-records.js && node --check src/search-criteria.js && node --check src/prototype-shell.js && node --check scripts/check-csv-parser.js && node --check scripts/check-search-criteria.js",
+    "check": "node --check scripts/dev-server.js && node --check src/csv-candidate-records.js && node --check src/search-criteria.js && node --check src/message-draft.js && node --check src/prototype-shell.js && node --check scripts/check-csv-parser.js && node --check scripts/check-search-criteria.js && node --check scripts/check-message-draft.js",
     "check:csv": "node scripts/check-csv-parser.js",
-    "check:search-criteria": "node scripts/check-search-criteria.js"
+    "check:search-criteria": "node scripts/check-search-criteria.js",
+    "check:message-draft": "node scripts/check-message-draft.js"
   }
 }
