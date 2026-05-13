@@ -3,6 +3,7 @@ import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tan
 import { createContext, useContext, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { createRoot } from "react-dom/client";
 import { parseCsvTalentPool, type CandidateRecord } from "./csv-candidate-records.js";
+import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "./message-draft.js";
 import { interpretSearchCriteria, type SearchCriteria } from "./search-criteria.js";
 import { buildShortlist, type Match } from "./shortlist-matches.js";
 import "./styles.css";
@@ -374,9 +375,26 @@ function getDuplicateWarning(record: CandidateRecord, records: CandidateRecord[]
 function MatchDetailRoute() {
   const { matchId } = matchRoute.useParams();
   const { session } = useAppSession();
+  const [draftText, setDraftText] = useState("");
+  const [draftStatus, setDraftStatus] = useState("Talent Rediscovery never sends outreach automatically.");
   const match = session.shortlist.find((candidateMatch) => getMatchId(candidateMatch) === matchId);
 
   if (match) {
+    const isDraftable = canDraftMessageFromSuggestedNextAction(match.suggestedNextAction);
+
+    function handleCreateDraft() {
+      if (!match) {
+        return;
+      }
+
+      try {
+        setDraftText(draftMessageFromMatch({ ...match, searchRequest: session.searchRequest }));
+        setDraftStatus("Editable draft created for recruiter review. It has not been sent.");
+      } catch (error) {
+        setDraftStatus(error instanceof Error ? error.message : "The editable draft could not be created.");
+      }
+    }
+
     return (
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <article className="rounded-2xl border border-outline-soft bg-surface-lowest p-8">
@@ -391,6 +409,34 @@ function MatchDetailRoute() {
           <DetailSection title="Reasons" items={match.reasons} />
           <DetailSection title="Candidate Record evidence" items={match.evidence.map((item) => `${item.label}: ${item.value} (${item.matched})`)} />
           <DetailSection title="Gaps" items={match.gaps} />
+          <section className="mt-8 rounded-2xl border border-outline-soft bg-surface-low p-6">
+            <h2 className="font-serif text-xl font-semibold text-slate">Create editable draft</h2>
+            <p className="mt-3 text-sm leading-6 text-muted">
+              Available when the Suggested Next Action is contact or recontact-oriented. Talent Rediscovery never sends outreach automatically.
+            </p>
+            <button
+              type="button"
+              className="mt-4 rounded-lg bg-slate px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-outline-soft"
+              disabled={!isDraftable}
+              onClick={handleCreateDraft}
+            >
+              Create editable draft
+            </button>
+            <p className="mt-3 text-sm leading-6 text-muted" aria-live="polite">
+              {isDraftable ? draftStatus : "Editable drafts are unavailable unless the Suggested Next Action is to contact or recontact."}
+            </p>
+            {draftText ? (
+              <label className="mt-4 grid gap-2 text-sm font-semibold text-slate" htmlFor="message-draft">
+                Editable message draft
+                <textarea
+                  id="message-draft"
+                  className="min-h-48 rounded-xl border border-outline-soft bg-surface-lowest p-4 text-sm font-normal leading-6 text-ink outline-none focus:border-slate"
+                  value={draftText}
+                  onChange={(event) => setDraftText(event.target.value)}
+                />
+              </label>
+            ) : null}
+          </section>
         </article>
 
         <aside className="rounded-2xl border border-outline-soft bg-surface-low p-6">
