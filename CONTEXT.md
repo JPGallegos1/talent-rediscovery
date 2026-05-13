@@ -35,6 +35,11 @@ A file uploaded by a recruiter that contains **Candidate Records**; CSV is the r
 **Voice Copilot**:
 An optional interaction layer for the demo that lets recruiters create Search Requests and navigate or ask follow-up questions about a Shortlist and its Matches; not a core domain concept.
 
+**Intelligence Layer**:
+The AI-assisted interaction layer used by chat or Voice Copilot to create Search Requests, navigate Shortlists, explain or compare Matches, and request editable message drafts. It is not the source of truth for matching, does not modify Candidate Records, does not edit Search Criteria manually, and does not execute external actions.
+
+In the MVP, the **Intelligence Layer** may request only these interaction actions: create a **Search Request**, navigate to a **Match**, explain a **Match**, compare existing **Matches**, request an editable message draft, and show interpreted **Search Criteria** as read-only information.
+
 ## Relationships
 
 - A **Talent Pool** contains many **Candidate Records**.
@@ -47,6 +52,7 @@ An optional interaction layer for the demo that lets recruiters create Search Re
 - A **Match** includes one **Suggested Next Action**.
 - Talent Rediscovery returns a **Shortlist** from a **Talent Pool**.
 - A **Voice Copilot** can operate on a **Search Request**, **Shortlist**, or **Match**, but it does not modify **Candidate Records** or execute external actions in the MVP.
+- The **Intelligence Layer** can assist interaction with **Search Requests**, **Shortlists**, and **Matches**, but Talent Rediscovery still evaluates **Candidate Records** against **Search Criteria** through evidence-grounded matching.
 
 ## Example Dialogue
 
@@ -95,6 +101,12 @@ An optional interaction layer for the demo that lets recruiters create Search Re
 > **Dev:** "Is Voice Chat just another way to submit a Search Request?"
 > **Domain expert:** "No. Treat it as a **Voice Copilot** interaction layer. It can create Search Requests, explain Matches, navigate to a Candidate Record, compare Matches, or prepare a message draft, but it should not become a core domain object or execute external actions in the MVP."
 
+> **Dev:** "Should the Intelligence Layer replace the matching logic?"
+> **Domain expert:** "No. The **Intelligence Layer** improves chat and voice interaction. Matching remains evidence-grounded in **Candidate Record** data, and AI must not become the source of truth for **Match** strength or claims."
+
+> **Dev:** "Can the Intelligence Layer edit records or take action for the recruiter?"
+> **Domain expert:** "No. It can request interaction actions like navigating to a **Match** or preparing an editable draft, but it cannot edit **Candidate Records**, manually edit **Search Criteria**, send messages, save Shortlists, persist Talent Pools, or import external sources."
+
 > **Dev:** "Should AI decide Matches as a black box from the start?"
 > **Domain expert:** "No. Use AI where it helps the demo and interaction, but keep Matches evidence-grounded. A Match must be explainable from Candidate Record evidence, even if AI helps interpret the Search Request or power the Voice Copilot."
 
@@ -113,3 +125,5 @@ An optional interaction layer for the demo that lets recruiters create Search Re
 - Persisting uploaded **Talent Pools** adds privacy, deletion, auth, and product-scope complexity. Resolved: keep the **Talent Pool** in memory for the MVP.
 - Voice interaction could be confused with core product behavior. Resolved: **Voice Copilot** is an optional demo interaction layer over Search Requests, Shortlists, and Matches, not a core domain concept.
 - AI matching could become an opaque black box. Resolved: the MVP may be AI-assisted, but every **Match** must be evidence-grounded in **Candidate Record** data.
+- "Intelligence Layer" could sound like product intelligence or matching automation. Resolved: in the MVP, the **Intelligence Layer** is only an interaction layer for chat and **Voice Copilot** over Search Requests, Shortlists, and Matches.
+- Copilot actions could blur into automation. Resolved: allowed **Intelligence Layer** actions are limited to creating Search Requests, navigating to Matches, explaining or comparing Matches, requesting editable message drafts, and showing read-only Search Criteria.

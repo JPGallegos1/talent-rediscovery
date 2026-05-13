@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Candidate Match Details - RecruitAI</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed": "#0f1e1f",
+                        "surface-container-high": "#eae8e2",
+                        "primary-fixed": "#d5e6e6",
+                        "on-surface-variant": "#424848",
+                        "outline-variant": "#c2c7c7",
+                        "on-secondary-fixed-variant": "#424848",
+                        "surface-variant": "#e4e2dc",
+                        "inverse-primary": "#b9caca",
+                        "surface-bright": "#fbf9f3",
+                        "surface-container-low": "#f6f3ed",
+                        "inverse-surface": "#30312d",
+                        "secondary-container": "#dee4e3",
+                        "tertiary": "#433128",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#f0eee8",
+                        "on-tertiary-container": "#d1b6a9",
+                        "secondary": "#595f60",
+                        "on-tertiary-fixed": "#271810",
+                        "tertiary-fixed": "#faddcf",
+                        "tertiary-container": "#5b473d",
+                        "primary-container": "#3f4e4f",
+                        "on-secondary-container": "#5f6566",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-background": "#1b1c18",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed-variant": "#564339",
+                        "on-primary-fixed-variant": "#3a494a",
+                        "background": "#fbf9f3",
+                        "surface-container-highest": "#e4e2dc",
+                        "primary": "#293738",
+                        "on-secondary-fixed": "#171d1d",
+                        "error-container": "#ffdad6",
+                        "surface": "#fbf9f3",
+                        "inverse-on-surface": "#f3f1eb",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed-dim": "#c2c8c7",
+                        "outline": "#737878",
+                        "on-primary-container": "#aebfc0",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#b9caca",
+                        "on-surface": "#1b1c18",
+                        "secondary-fixed": "#dee4e3",
+                        "surface-dim": "#dcdad4",
+                        "on-secondary": "#ffffff",
+                        "surface-tint": "#526162",
+                        "tertiary-fixed-dim": "#ddc1b4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "stack-md": "24px",
+                        "stack-lg": "48px",
+                        "gutter": "24px",
+                        "stack-sm": "12px",
+                        "container-padding": "32px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Plus Jakarta Sans"],
+                        "headline-xl": ["Noto Serif"],
+                        "headline-md": ["Noto Serif"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "body-sm": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Noto Serif"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "label-md": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Noto Serif"],
+                        "headline-sm": ["Noto Serif"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+                        "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md flex min-h-screen">
+<!-- SideNavBar -->
+<nav class="bg-surface-container border-r border-outline-variant/10 fixed left-0 top-0 h-full w-[280px] hidden md:flex flex-col py-gutter px-4 z-20">
+<!-- Brand Logo -->
+<div class="mb-stack-lg px-4 flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="data_exploration" style="font-variation-settings: 'FILL' 1; font-size: 32px;">data_exploration</span>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">RecruitAI</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Talent Rediscovery</p>
+</div>
+</div>
+<!-- Navigation Tabs -->
+<ul class="flex-1 flex flex-col gap-2 font-label-md text-label-md">
+<li>
+<a class="flex items-center gap-3 py-3 text-on-surface-variant font-medium pl-4 hover:bg-surface-variant/50 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+                    Dashboard
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-3 text-on-surface-variant font-medium pl-4 hover:bg-surface-variant/50 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+                    Talent Pool
+                </a>
+</li>
+<li>
+<!-- Active Tab: Matches -->
+<a class="flex items-center gap-3 py-3 text-primary font-bold border-l-4 border-tertiary pl-3 hover:bg-surface-variant/50 transition-colors duration-200 rounded-lg bg-surface-variant/30" href="#">
+<span class="material-symbols-outlined" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+                    Matches
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-3 text-on-surface-variant font-medium pl-4 hover:bg-surface-variant/50 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="psychology">psychology</span>
+                    Copilot
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-3 text-on-surface-variant font-medium pl-4 hover:bg-surface-variant/50 transition-colors duration-200 rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                    Settings
+                </a>
+</li>
+</ul>
+<!-- CTA Bottom -->
+<div class="mt-auto pt-stack-md">
+<button class="w-full bg-primary-container text-on-primary-container font-label-md text-label-md py-3 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="cloud_upload">cloud_upload</span>
+                Upload Talent Pool
+            </button>
+<div class="mt-stack-sm flex items-center gap-3 px-2 py-3 border-t border-outline-variant/20">
+<img alt="Recruiter Profile" class="w-10 h-10 rounded-full object-cover border border-outline-variant/30" data-alt="A professional headshot of a smiling recruiter in a modern office environment, wearing a smart casual dark blazer. Soft, natural light illuminating their face against a slightly blurred background of a glass-walled conference room. The overall tone is approachable yet authoritative, fitting a corporate modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIz7jLgsl9Gd7fy9tyNP0pvje39wQwDSCdMj9p4zWNsHhNkXmfVEZb3Hl-b_LGt1JT404jELiqI9KdHpgwYpVQIEa9Q4sbAygaOqhcKEIcV6F2bKclbVUFT-NeIPKHQttSyPaw2WdrhGh50ToCEzvCVpu02YGkzcVj8fc-8PgMERWAizwQDM3VAEYtJx37Q7NijCjgvPZgrvaNgWwDwAFQkhkmYgVyjxea3Gn_xaiMhHCH180QF47ECgeA_UsEoHpGmmX3xRxMV3Yt"/>
+<div class="overflow-hidden">
+<p class="font-label-md text-label-md text-primary truncate">Alex Morgan</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant truncate">Lead Recruiter</p>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col ml-0 md:ml-[280px] w-full md:w-[calc(100%-280px)]">
+<!-- TopAppBar -->
+<header class="bg-surface/90 backdrop-blur-md border-b border-outline-variant/10 shadow-sm flex justify-between items-center h-16 px-gutter sticky top-0 z-10">
+<!-- Search Bar (Left) -->
+<div class="flex items-center flex-1 max-w-md">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" data-icon="search">search</span>
+<input class="w-full bg-surface-container-low border-b border-outline-variant/50 focus:border-primary pb-2 pt-2 pl-10 pr-4 text-body-sm font-body-sm text-on-surface placeholder:text-on-surface-variant focus:ring-0 focus:outline-none bg-transparent transition-colors" placeholder="Search candidate records..." type="text"/>
+</div>
+</div>
+<!-- Trailing Actions -->
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors focus:ring-2 focus:ring-primary/20 outline-none rounded-full p-2">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors focus:ring-2 focus:ring-primary/20 outline-none rounded-full p-2">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<img alt="User avatar" class="w-8 h-8 rounded-full object-cover border border-outline-variant/30 md:hidden" data-alt="A professional headshot of a smiling recruiter in a modern office environment, wearing a smart casual dark blazer. Soft, natural light illuminating their face against a slightly blurred background of a glass-walled conference room. The overall tone is approachable yet authoritative, fitting a corporate modern aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrYRaTOaab2WGs_0T1puGCgRW4I4BtJvuWTtG-sZ7E7QtmyNKX1RH1GNliNWb5okHtoHkCDgwu2TeEeNAz2vqOA8c2dX56cBytgISc_Z8vs5CgPA5rzUJrbyU6pev_2sqXYXfzhwueTvsAKAWG44ldTjCvk9Df3480LuDnU16bq76ZFmabfbtlRUtcPMvjn-PsvmIPaRjoFEYg43hlQ5FqlrpeY0t8QjX2UsJF3r3o5r5xruVV0rVDA-ytKdr3K_XdL64AiQ2MVywJ"/>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 p-gutter overflow-y-auto pb-stack-lg">
+<!-- Context & Breadcrumbs -->
+<div class="mb-stack-sm flex items-center gap-2 text-on-surface-variant font-label-sm text-label-sm">
+<a class="hover:text-primary transition-colors flex items-center gap-1" href="#">
+<span class="material-symbols-outlined" data-icon="arrow_back" style="font-size: 14px;">arrow_back</span>
+                    Senior Staff Engineer Role
+                </a>
+<span>/</span>
+<span class="text-on-surface">Match Analysis</span>
+</div>
+<!-- Header Card: Candidate Intro & Match Strength -->
+<section class="bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_rgba(63,78,79,0.05)] p-stack-md flex flex-col md:flex-row items-start md:items-center justify-between gap-stack-md mb-gutter border border-outline-variant/10">
+<div class="flex items-center gap-stack-md">
+<div class="relative">
+<img alt="Candidate Profile" class="w-24 h-24 rounded-full object-cover shadow-sm border-2 border-surface-container" data-alt="A high-quality, professional headshot of a confident female software engineer. She is looking directly at the camera with a subtle smile, wearing a dark navy blouse. The background is a clean, bright, out-of-focus office space with natural daylight, fitting a premium corporate aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8QtQvCfV9CoumyEku1EvwxYFFSkr31iudq0c5CrkEAGtNydxEcc0KxKkFfdJbHQg_qjDwouG5aM2-uDedBAS2Nvc2E_Qw0V0j22Atj_YoX3osdMX_-d5NLNQtH8bTQ0pov9TmNAGroBMuRoYQG8xO67eDcBya-hpU72stnk9hd1A4oj5TmLCbrTcflWeF8_qTd8Alrqimcakt6Td1aSMTgccgV7AK6_jpVNI-lAWRrrUIsKLFvTrNu-Bmq-FuwwK1ZpD2Pl43l3m5"/>
+<span class="absolute bottom-0 right-0 bg-secondary-container p-1.5 rounded-full border-2 border-surface-container-lowest text-on-secondary-container">
+<span class="material-symbols-outlined" data-icon="code" style="font-size: 16px;">code</span>
+</span>
+</div>
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-1">Sarah Jenkins</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-2">Lead Backend Developer at TechFlow</p>
+<div class="flex items-center gap-4 font-label-sm text-label-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined" data-icon="location_on" style="font-size: 16px;">location_on</span> Seattle, WA (Remote OK)</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined" data-icon="update" style="font-size: 16px;">update</span> Last active: 2 days ago</span>
+</div>
+</div>
+</div>
+<!-- Prominent Match Strength Badge -->
+<div class="flex flex-col items-end">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">Match Assessment</p>
+<div class="bg-primary-container text-on-primary-container px-6 py-3 rounded-full flex items-center gap-2 shadow-sm">
+<span class="material-symbols-outlined" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-headline-sm text-headline-sm font-semibold">Strong Match</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-2 text-right max-w-[200px]">High alignment with technical requirements and leadership scope.</p>
+</div>
+</section>
+<!-- Bento Grid Layout for Details -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
+<!-- Left Column (Evidence & Rationale - spans 8 cols) -->
+<div class="lg:col-span-8 flex flex-col gap-gutter">
+<!-- Reasons / Key Strengths -->
+<section class="bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_rgba(63,78,79,0.05)] p-container-padding border border-outline-variant/10">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-stack-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="insights">insights</span>
+                            Evidence of Fit
+                        </h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-stack-md">Based on the job description for <strong>Senior Staff Engineer</strong>, here is why this candidate was surfaced as a high-potential match.</p>
+<div class="space-y-4">
+<!-- Evidence Item 1 -->
+<div class="flex items-start gap-4 p-4 rounded-lg bg-surface-container-low/50 hover:bg-surface-container-low transition-colors">
+<div class="bg-[#e2f1e6] text-[#2e5e3e] p-2 rounded-full mt-1 shrink-0">
+<span class="material-symbols-outlined" data-icon="verified" style="font-variation-settings: 'FILL' 1; font-size: 20px;">verified</span>
+</div>
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface text-[16px] mb-1">Distributed Systems Architecture</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Directly maps to requirement. Sarah led the migration of a monolithic payment gateway to a microservices architecture handling 10k+ TPS, demonstrating required scale.</p>
+</div>
+</div>
+<!-- Evidence Item 2 -->
+<div class="flex items-start gap-4 p-4 rounded-lg bg-surface-container-low/50 hover:bg-surface-container-low transition-colors">
+<div class="bg-[#e2f1e6] text-[#2e5e3e] p-2 rounded-full mt-1 shrink-0">
+<span class="material-symbols-outlined" data-icon="verified" style="font-variation-settings: 'FILL' 1; font-size: 20px;">verified</span>
+</div>
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface text-[16px] mb-1">Technical Leadership &amp; Mentoring</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Current role as 'Lead Backend Developer' includes managing a team of 6 engineers. Resume explicitly mentions "mentored 4 junior devs to mid-level promotions."</p>
+</div>
+</div>
+<!-- Evidence Item 3 -->
+<div class="flex items-start gap-4 p-4 rounded-lg bg-surface-container-low/50 hover:bg-surface-container-low transition-colors">
+<div class="bg-[#e2f1e6] text-[#2e5e3e] p-2 rounded-full mt-1 shrink-0">
+<span class="material-symbols-outlined" data-icon="verified" style="font-variation-settings: 'FILL' 1; font-size: 20px;">verified</span>
+</div>
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface text-[16px] mb-1">Golang &amp; Kubernetes Proficiency</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Primary stack for the past 4.5 years aligns perfectly with our core infrastructure requirements.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Candidate Record Details -->
+<section class="bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_rgba(63,78,79,0.05)] p-container-padding border border-outline-variant/10">
+<div class="flex justify-between items-end mb-stack-sm">
+<h3 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="history">history</span>
+                                Relevant Experience Record
+                            </h3>
+<a class="font-label-md text-label-md text-primary hover:underline" href="#">View Full Profile</a>
+</div>
+<div class="relative pl-6 border-l-2 border-outline-variant/20 space-y-stack-sm mt-stack-md">
+<!-- Timeline Node 1 -->
+<div class="relative">
+<span class="absolute -left-[33px] top-1 w-4 h-4 rounded-full bg-primary-container border-2 border-surface-container-lowest"></span>
+<h4 class="font-headline-sm text-headline-sm text-on-surface text-[16px]">Lead Backend Developer</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-2">TechFlow Inc. • 2020 - Present</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Architected the core data ingestion pipeline using Go and Kafka, reducing processing latency by 40%. Led a cross-functional team of 6 engineers.</p>
+</div>
+<!-- Timeline Node 2 -->
+<div class="relative">
+<span class="absolute -left-[33px] top-1 w-4 h-4 rounded-full bg-secondary border-2 border-surface-container-lowest"></span>
+<h4 class="font-headline-sm text-headline-sm text-on-surface text-[16px]">Senior Software Engineer</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-2">CloudScale Solutions • 2017 - 2020</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Developed microservices for identity management system. Championed the adoption of Kubernetes across the engineering org.</p>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column (Risks, Gaps, Action - spans 4 cols) -->
+<div class="lg:col-span-4 flex flex-col gap-gutter">
+<!-- Considerations Card -->
+<section class="bg-surface-bright rounded-xl border border-tertiary/10 p-6 shadow-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-stack-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary-container" data-icon="balance">balance</span>
+                            Considerations
+                        </h3>
+<!-- Validation Points / Risks -->
+<div class="mb-stack-sm">
+<h4 class="font-label-md text-label-md text-tertiary-container uppercase tracking-wider mb-3 flex items-center gap-1">
+<span class="material-symbols-outlined" data-icon="warning" style="font-size: 16px;">warning</span>
+                                Points to Validate
+                            </h4>
+<ul class="space-y-3 font-body-sm text-body-sm text-on-surface-variant">
+<li class="flex items-start gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary-container mt-2 shrink-0"></span>
+<span>Experience with high-frequency trading platforms (nice-to-have, not explicitly listed).</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary-container mt-2 shrink-0"></span>
+<span>Recent tenure is 3+ years; assess readiness for a new architectural paradigm vs maintaining current systems.</span>
+</li>
+</ul>
+</div>
+<hr class="border-outline-variant/20 my-4"/>
+<!-- Missing Info / Gaps -->
+<div>
+<h4 class="font-label-md text-label-md text-secondary uppercase tracking-wider mb-3 flex items-center gap-1">
+<span class="material-symbols-outlined" data-icon="help" style="font-size: 16px;">help</span>
+                                Missing Information
+                            </h4>
+<ul class="space-y-3 font-body-sm text-body-sm text-on-surface-variant">
+<li class="flex items-start gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary mt-2 shrink-0"></span>
+<span>Current compensation expectations.</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary mt-2 shrink-0"></span>
+<span>Willingness for quarterly travel to HQ (Seattle -&gt; NY).</span>
+</li>
+</ul>
+</div>
+</section>
+<!-- Suggested Action Area -->
+<section class="bg-surface-container-lowest rounded-xl shadow-[0_8px_30px_rgba(63,78,79,0.08)] border border-primary/10 overflow-hidden mt-auto">
+<div class="bg-surface-container-low px-6 py-4 border-b border-outline-variant/10">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="forward_to_inbox">forward_to_inbox</span>
+                                Suggested Next Action
+                            </h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Initiate contact based on strong alignment.</p>
+</div>
+<div class="p-6">
+<div class="mb-4">
+<label class="font-label-md text-label-md text-on-surface-variant block mb-2" for="message-draft">Draft Outreach Message</label>
+<textarea class="w-full bg-surface-bright border border-outline-variant/30 rounded-lg p-3 font-body-sm text-body-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none shadow-inner" id="message-draft" placeholder="Type your message here..." rows="6">Hi Sarah, 
+
+I came across your profile and was thoroughly impressed by your work architecting the data ingestion pipelines at TechFlow. 
+
+We are currently looking for a Senior Staff Engineer to lead our transition to a distributed microservices model, and your experience with Go and Kubernetes seems like a perfect fit. 
+
+Would you be open to a brief chat this week to discuss?</textarea>
+<div class="flex justify-end mt-2">
+<button class="text-label-sm font-label-sm text-primary flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined" data-icon="auto_awesome" style="font-size: 14px;">auto_awesome</span> Regenerate Tone
+                                    </button>
+</div>
+</div>
+<button class="w-full bg-primary-container text-on-primary-container hover:bg-[#323E3F] transition-colors duration-200 font-label-md text-label-md py-3 px-4 rounded-lg flex items-center justify-center gap-2 shadow-sm">
+<span class="material-symbols-outlined" data-icon="send">send</span>
+                                Draft Message &amp; Review
+                            </button>
+<p class="font-label-sm text-label-sm text-center text-on-surface-variant mt-3 opacity-80">This will not send immediately.</p>
+</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</body></html>

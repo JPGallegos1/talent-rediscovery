@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Superseded for frontend shell decisions by `docs/adr/0001-tanstack-frontend-shell.md`. The domain and MVP scope constraints remain active unless superseded separately.
 
 ## Context
 
