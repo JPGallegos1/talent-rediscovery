@@ -465,12 +465,11 @@ function MatchCard({ match, index }: { match: Match; index: number }) {
 
 function TalentPoolRoute() {
   const { session, setSession } = useAppSession();
-  const [uploadStatus, setUploadStatus] = useState("No Talent Pool File selected yet.");
+  const [uploadStatus, setUploadStatus] = useState("Upload a CSV Talent Pool File to start.");
   const [uploadError, setUploadError] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
-  async function handleTalentPoolFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const [file] = event.target.files ?? [];
-
+  async function handleTalentPoolFile(file: File | null) {
     if (!file) {
       setUploadStatus("No Talent Pool File selected yet.");
       setUploadError(false);
@@ -514,42 +513,57 @@ function TalentPoolRoute() {
     }
   }
 
+  async function handleTalentPoolFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const [file] = event.target.files ?? [];
+    await handleTalentPoolFile(file ?? null);
+  }
+
+  async function handleDrop(event: React.DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    setIsDragOver(false);
+    const [file] = event.dataTransfer.files ?? [];
+    await handleTalentPoolFile(file ?? null);
+  }
+
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-outline-soft bg-surface-lowest p-6 sm:p-8">
+      <header className="mb-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-earth">CSV-first intake</p>
-        <h1 className="mt-4 font-serif text-4xl font-semibold text-slate">Upload a CSV Talent Pool File</h1>
-        <p className="mt-4 max-w-3xl text-base leading-7 text-muted">
-          Candidate Records will stay in browser memory for the MVP. This route will review normalized canonical fields while preserving non-canonical source fields.
-        </p>
+        <h2 className="mt-2 font-serif text-[32px] font-semibold leading-10 tracking-[-0.01em] text-slate">
+          Talent Pool Management
+        </h2>
+        <p className="mt-2 text-base leading-7 text-muted">Upload, view, and manage Candidate Records from CSV Talent Pool Files.</p>
       </header>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <section className="rounded-2xl border border-outline-soft bg-surface-lowest p-6">
-          <div className="rounded-xl border border-dashed border-outline-soft bg-surface-low p-6">
-            <h2 className="font-serif text-2xl font-semibold text-slate">Talent Pool File upload</h2>
-            <p className="mt-3 text-sm leading-6 text-muted">
-              Upload CSV only. No ATS import, Notion import, sync, export, inline editing, or persistence is active here.
-            </p>
-            <label className="mt-5 inline-flex cursor-pointer rounded-lg bg-slate px-4 py-3 text-sm font-semibold text-white hover:bg-slate-strong">
-              Choose CSV Talent Pool File
-              <input className="sr-only" type="file" accept=".csv,text/csv" onChange={handleTalentPoolFileChange} />
-            </label>
-            <p className={`mt-4 text-sm leading-6 ${uploadError ? "text-earth" : "text-muted"}`} aria-live="polite">
-              {uploadStatus}
-            </p>
-          </div>
-
-          <CandidateRecordTable records={session.candidateRecords} />
-        </section>
-
-        <aside className="rounded-2xl border border-outline-soft bg-surface-low p-6">
-          <h2 className="font-serif text-xl font-semibold text-slate">In-memory boundary</h2>
-          <p className="mt-3 text-sm leading-6 text-muted">
-            Current file: {session.talentPoolFileName ?? "none"}. Refreshes may lose Talent Pool and Shortlist state until persistence is explicitly introduced.
+      <label
+        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
+          isDragOver
+            ? "border-slate bg-slate-soft/20"
+            : "border-outline-soft/40 bg-surface-lowest hover:bg-surface-low"
+        }`}
+        onDragOver={(event) => { event.preventDefault(); setIsDragOver(true); }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={handleDrop}
+      >
+        <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-secondary-soft text-secondary-strong">
+          <span className="material-symbols-outlined text-3xl">cloud_upload</span>
+        </div>
+        <h3 className="font-serif text-xl font-semibold text-slate">Upload CSV Talent Pool File</h3>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted">
+          Drag and drop your Candidate Record file here, or click to browse. CSV only. No ATS import, Notion import, sync, or persistence in the MVP.
+        </p>
+        <input className="sr-only" type="file" accept=".csv,text/csv" onChange={handleTalentPoolFileChange} />
+        <span className="mt-6 inline-flex cursor-pointer rounded-lg bg-slate-strong px-6 py-2 text-sm font-bold text-white transition hover:bg-slate">
+          Select File
+        </span>
+        {uploadStatus ? (
+          <p className={`mt-4 text-sm leading-6 ${uploadError ? "text-earth" : "text-muted"}`} aria-live="polite">
+            {uploadStatus}
           </p>
-        </aside>
-      </div>
+        ) : null}
+      </label>
+
+      <CandidateRecordTable records={session.candidateRecords} uploadFileName={session.talentPoolFileName} />
     </section>
   );
 }
@@ -558,83 +572,179 @@ function isCsvFile(file: File) {
   return file.name.toLowerCase().endsWith(".csv") || file.type === "text/csv";
 }
 
-function CandidateRecordTable({ records }: { records: CandidateRecord[] }) {
+function CandidateRecordTable({ records, uploadFileName }: { records: CandidateRecord[]; uploadFileName: string | null }) {
   const columns = useMemo<ColumnDef<CandidateRecord>[]>(
     () => [
-      { header: "Row", accessorFn: (record) => record.rowNumber },
       { header: "Name", accessorFn: (record) => formatCell(record.canonicalFields.name) },
-      { header: "Current role", accessorFn: (record) => formatCell(record.canonicalFields.currentRole) },
+      { header: "Current Role", accessorFn: (record) => formatCell(record.canonicalFields.currentRole) },
       { header: "Location", accessorFn: (record) => formatCell(record.canonicalFields.location) },
-      { header: "Years experience", accessorFn: (record) => formatCell(record.canonicalFields.yearsExperience) },
-      { header: "Skills", accessorFn: (record) => formatList(record.canonicalFields.skills.terms) },
-      { header: "Industries", accessorFn: (record) => formatList(record.canonicalFields.industries) },
-      { header: "English level", accessorFn: (record) => formatCell(record.canonicalFields.englishLevel) },
-      { header: "Availability", accessorFn: (record) => formatCell(record.canonicalFields.availability) },
-      { header: "Last contact", accessorFn: (record) => formatCell(record.canonicalFields.lastContactDate) },
-      { header: "Source", accessorFn: (record) => formatCell(record.canonicalFields.source) },
-      { header: "Normalization gaps", accessorFn: (record) => formatList(record.gaps.map((gap) => gap.label)) },
-      { header: "Duplicate warnings", accessorFn: (record) => getDuplicateWarning(record, records) },
+      { header: "Exp. (Yrs)", accessorFn: (record) => formatCell(record.canonicalFields.yearsExperience) },
+      {
+        header: "Skills (Top)",
+        id: "skills",
+        cell: ({ row }) => formatSkillsChips(row.original.canonicalFields.skills.terms.slice(0, 3)),
+      },
+      {
+        header: "Status / Warnings",
+        id: "status",
+        cell: ({ row }) => formatStatusBadge(row.original, records),
+      },
+      { header: "Source", accessorFn: (record) => formatSourceLabel(record.canonicalFields.source) },
     ],
     [records],
   );
   const table = useReactTable({ data: records, columns, getCoreRowModel: getCoreRowModel() });
 
   return (
-    <div className="mt-6 overflow-x-auto rounded-xl border border-outline-soft">
-      <table className="min-w-[1280px] divide-y divide-outline-soft text-left text-sm">
-        <thead className="bg-surface text-xs uppercase tracking-[0.14em] text-muted">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <th key={header.id} className="px-4 py-3 font-semibold">
+    <section className="overflow-hidden rounded-xl border border-outline-soft/20 bg-surface-lowest shadow-stitch-card">
+      <div className="flex items-center justify-between border-b border-outline-soft/10 bg-surface px-6 py-4">
+        <h3 className="font-serif text-xl font-semibold text-slate">Candidate Records</h3>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            className="flex items-center gap-2 rounded-lg border border-outline/30 px-4 py-2 text-sm font-semibold text-muted transition hover:bg-surface-container-low"
+            disabled
+          >
+            <span className="material-symbols-outlined text-[16px]">filter_list</span>
+            Filter
+          </button>
+          <button
+            type="button"
+            className="flex items-center gap-2 rounded-lg border border-outline/30 px-4 py-2 text-sm font-semibold text-muted transition hover:bg-surface-container-low"
+            disabled
+          >
+            <span className="material-symbols-outlined text-[16px]">download</span>
+            Export
+          </button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-outline-soft/20 bg-surface-container-low">
+              {table.getFlatHeaders().map((header) => (
+                <th key={header.id} className="whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted">
                   {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                 </th>
               ))}
             </tr>
-          ))}
-        </thead>
-        <tbody className="divide-y divide-outline-soft bg-surface-lowest align-top">
-          {table.getRowModel().rows.length > 0 ? (
-            table.getRowModel().rows.map((row) => (
-              <tr key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <td key={cell.id} className="max-w-[220px] px-4 py-4 text-muted">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
+          </thead>
+          <tbody className="divide-y divide-outline-soft/10 bg-surface-lowest">
+            {table.getRowModel().rows.length > 0 ? (
+              table.getRowModel().rows.map((row) => (
+                <tr key={row.id} className="transition-colors hover:bg-surface-container-low/50">
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="whitespace-nowrap px-4 py-4 text-sm text-muted">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={columns.length} className="px-4 py-8 text-center text-sm text-muted">
+                  {uploadFileName
+                    ? "No Candidate Records found in the uploaded file."
+                    : "Upload a CSV Talent Pool File to view Candidate Records."}
+                </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-muted">
-                No Candidate Records loaded in this session.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex items-center justify-between border-t border-outline-soft/10 bg-surface px-6 py-4">
+        <span className="text-xs font-semibold text-muted">
+          {uploadFileName
+            ? `Showing all ${records.length} Candidate Records from ${uploadFileName}`
+            : "No Talent Pool File loaded"}
+        </span>
+        <div className="flex gap-2">
+          <button type="button" className="rounded border border-outline-soft/50 px-3 py-1 text-xs text-muted" disabled>Prev</button>
+          <button type="button" className="rounded border border-outline-soft/50 px-3 py-1 text-xs text-muted" disabled>Next</button>
+        </div>
+      </div>
+    </section>
   );
 }
 
 function formatCell(value: string | number) {
-  return value ? String(value) : "Not provided";
+  return value ? String(value) : "\u2014";
 }
 
-function formatList(values: string[]) {
-  return values.length > 0 ? values.join(", ") : "Not provided";
-}
-
-function getDuplicateWarning(record: CandidateRecord, records: CandidateRecord[]) {
-  const name = record.canonicalFields.name.trim().toLowerCase();
-
-  if (!name) {
-    return "Not enough data";
+function formatSkillsChips(skills: string[]) {
+  if (skills.length === 0) {
+    return <span className="text-xs italic text-muted-soft">None listed</span>;
   }
 
-  const duplicateRows = records.filter((candidateRecord) => candidateRecord.canonicalFields.name.trim().toLowerCase() === name);
+  return (
+    <div className="flex flex-wrap gap-1">
+      {skills.map((skill) => (
+        <span key={skill} className="rounded bg-surface-variant px-2 py-0.5 text-[10px] font-medium text-muted">
+          {skill}
+        </span>
+      ))}
+    </div>
+  );
+}
 
-  return duplicateRows.length > 1 ? `Possible duplicate name across ${duplicateRows.length} rows` : "None detected";
+function getRecordStatus(record: CandidateRecord, records: CandidateRecord[]): { label: string; variant: "validated" | "duplicate" | "gap" | "unknown" } {
+  const name = record.canonicalFields.name.trim().toLowerCase();
+
+  if (name) {
+    const duplicateRows = records.filter((candidateRecord) => candidateRecord.canonicalFields.name.trim().toLowerCase() === name);
+    if (duplicateRows.length > 1) {
+      return { label: "Duplicate Suspected", variant: "duplicate" };
+    }
+  }
+
+  if (record.gaps.length > 0) {
+    return { label: "Normalization Gap", variant: "gap" };
+  }
+
+  if (!name) {
+    return { label: "Unknown", variant: "unknown" };
+  }
+
+  return { label: "Validated", variant: "validated" };
+}
+
+function formatStatusBadge(record: CandidateRecord, records: CandidateRecord[]) {
+  const status = getRecordStatus(record, records);
+  const styles = {
+    validated: "bg-evidence-soft text-evidence",
+    duplicate: "bg-risk-soft text-risk",
+    gap: "bg-secondary-soft text-secondary-strong",
+    unknown: "bg-surface-high text-muted",
+  };
+  const icons = {
+    validated: "check_circle",
+    duplicate: "error",
+    gap: "sync_problem",
+    unknown: "help_outline",
+  };
+
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${styles[status.variant]}`}>
+      <span className="material-symbols-outlined text-[12px]">{icons[status.variant]}</span>
+      {status.label}
+    </span>
+  );
+}
+
+function formatSourceLabel(source: string) {
+  if (!source) {
+    return <span className="text-xs italic text-muted-soft">Unknown source</span>;
+  }
+
+  const cleanSource = source
+    .replace(/greenhouse\s*api/i, "CSV Upload")
+    .replace(/linkedin\s*scrape/i, "CSV Upload")
+    .replace(/api/i, "CSV Upload")
+    .trim();
+
+  return <span className="text-xs font-medium text-slate">{cleanSource}</span>;
 }
 
 function MatchDetailRoute() {
