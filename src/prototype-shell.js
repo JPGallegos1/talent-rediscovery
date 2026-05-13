@@ -1,5 +1,6 @@
 import { parseCsvTalentPool } from "./csv-candidate-records.js";
 import { interpretSearchCriteria } from "./search-criteria.js";
+import { buildShortlist } from "./shortlist-matches.js";
 
 const shell = document.querySelector("[data-prototype-shell]");
 const fileInput = document.querySelector("[data-talent-pool-file]");
@@ -14,6 +15,9 @@ const searchStatus = document.querySelector("[data-search-status]");
 const submittedSearch = document.querySelector("[data-submitted-search]");
 const submittedSearchRequest = document.querySelector("[data-submitted-search-request]");
 const searchCriteria = document.querySelector("[data-search-criteria]");
+const shortlistPanel = document.querySelector("[data-shortlist-panel]");
+const shortlistCount = document.querySelector("[data-shortlist-count]");
+const shortlistGrid = document.querySelector("[data-shortlist-grid]");
 
 let talentPool = null;
 
@@ -64,8 +68,12 @@ searchForm?.addEventListener("submit", (event) => {
     return;
   }
 
-  renderSubmittedSearch(searchRequest, interpretSearchCriteria(searchRequest));
-  setSearchStatus("Search Request submitted. Matching and Shortlist generation are out of scope for this slice.");
+  const criteria = interpretSearchCriteria(searchRequest);
+  const shortlist = buildShortlist(talentPool.candidateRecords, criteria);
+
+  renderSubmittedSearch(searchRequest, criteria);
+  renderShortlist(shortlist);
+  setSearchStatus(`Search Request submitted. Returned ${shortlist.length} ranked Matches in an ephemeral Shortlist.`);
 });
 
 function isCsvFile(file) {
@@ -140,6 +148,11 @@ function clearPreview() {
   }
   submittedSearch?.setAttribute("hidden", "");
   searchCriteria?.replaceChildren();
+  shortlistPanel?.setAttribute("hidden", "");
+  shortlistGrid?.replaceChildren();
+  if (shortlistCount) {
+    shortlistCount.textContent = "";
+  }
   updateSearchAvailability();
 }
 
@@ -195,6 +208,96 @@ function formatCriteriaLabel(label) {
 
 function formatCriteriaValue(value) {
   return Array.isArray(value) ? value.join(", ") : value;
+}
+
+function renderShortlist(shortlist) {
+  if (!shortlistPanel || !shortlistCount || !shortlistGrid) {
+    return;
+  }
+
+  shortlistCount.textContent = `${shortlist.length} Matches`;
+  shortlistGrid.replaceChildren(...shortlist.map((match, index) => createMatchCard(match, index + 1)));
+  shortlistPanel.hidden = false;
+}
+
+function createMatchCard(match, rank) {
+  const { canonicalFields } = match.candidateRecord;
+  const card = document.createElement("article");
+  card.className = "match-card";
+
+  const heading = document.createElement("div");
+  heading.className = "match-heading";
+
+  const titleGroup = document.createElement("div");
+
+  const rankLabel = document.createElement("p");
+  rankLabel.className = "match-rank";
+  rankLabel.textContent = `Match ${rank}`;
+
+  const title = document.createElement("h3");
+  title.textContent = canonicalFields.name || `Candidate Record ${match.candidateRecord.rowNumber}`;
+
+  const role = document.createElement("p");
+  role.className = "record-role";
+  role.textContent = canonicalFields.currentRole || "Role not provided";
+
+  const strength = document.createElement("strong");
+  strength.className = "match-strength";
+  strength.textContent = match.strength;
+
+  titleGroup.append(rankLabel, title, role);
+  heading.append(titleGroup, strength);
+
+  const action = document.createElement("p");
+  action.className = "suggested-action";
+  action.textContent = match.suggestedNextAction;
+
+  card.append(
+    heading,
+    action,
+    createListSection("Reasons", match.reasons),
+    createEvidenceSection(match.evidence),
+    createListSection("Assumptions / gaps / missing information", match.gaps, "assumption-section"),
+    createListSection("Risks / validation points", match.risks, "risk-section"),
+  );
+
+  return card;
+}
+
+function createEvidenceSection(evidence) {
+  const section = document.createElement("section");
+  section.className = "match-section evidence-section";
+
+  const title = document.createElement("h4");
+  title.textContent = "Candidate Record evidence";
+
+  const list = document.createElement("dl");
+
+  evidence.forEach((item) => {
+    appendDetail(list, item.label, `${item.value} (${item.matched})`);
+  });
+
+  section.append(title, list);
+  return section;
+}
+
+function createListSection(titleText, items, className = "") {
+  const section = document.createElement("section");
+  section.className = ["match-section", className].filter(Boolean).join(" ");
+
+  const title = document.createElement("h4");
+  title.textContent = titleText;
+
+  const list = document.createElement("ul");
+
+  items.forEach((item) => {
+    const listItem = document.createElement("li");
+    listItem.textContent = item;
+    list.append(listItem);
+  });
+
+  section.append(title, list);
+  return section;
 }
 
 function setSearchStatus(message, isError = false) {
