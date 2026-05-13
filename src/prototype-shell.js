@@ -1,4 +1,5 @@
 import { parseCsvTalentPool } from "./csv-candidate-records.js";
+import { interpretSearchCriteria } from "./search-criteria.js";
 
 const shell = document.querySelector("[data-prototype-shell]");
 const fileInput = document.querySelector("[data-talent-pool-file]");
@@ -6,6 +7,13 @@ const status = document.querySelector("[data-upload-status]");
 const previewPanel = document.querySelector("[data-preview-panel]");
 const recordCount = document.querySelector("[data-record-count]");
 const recordGrid = document.querySelector("[data-record-grid]");
+const searchForm = document.querySelector("[data-search-form]");
+const searchRequestInput = document.querySelector("[data-search-request]");
+const searchSubmit = document.querySelector("[data-search-submit]");
+const searchStatus = document.querySelector("[data-search-status]");
+const submittedSearch = document.querySelector("[data-submitted-search]");
+const submittedSearchRequest = document.querySelector("[data-submitted-search-request]");
+const searchCriteria = document.querySelector("[data-search-criteria]");
 
 let talentPool = null;
 
@@ -32,10 +40,32 @@ fileInput?.addEventListener("change", async (event) => {
     const csvText = await file.text();
     talentPool = parseCsvTalentPool(csvText);
     renderPreview(talentPool.candidateRecords, file.name);
+    updateSearchAvailability();
   } catch (error) {
     talentPool = null;
+    updateSearchAvailability();
     setStatus(error instanceof Error ? error.message : "The Talent Pool File could not be parsed.", true);
   }
+});
+
+searchForm?.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  if (!talentPool) {
+    setSearchStatus("Upload a Talent Pool File before submitting a Search Request.", true);
+    return;
+  }
+
+  const searchRequest = searchRequestInput?.value.trim() ?? "";
+
+  if (!searchRequest) {
+    setSearchStatus("Enter a Search Request before submitting.", true);
+    searchRequestInput?.focus();
+    return;
+  }
+
+  renderSubmittedSearch(searchRequest, interpretSearchCriteria(searchRequest));
+  setSearchStatus("Search Request submitted. Matching and Shortlist generation are out of scope for this slice.");
 });
 
 function isCsvFile(file) {
@@ -108,6 +138,9 @@ function clearPreview() {
   if (recordCount) {
     recordCount.textContent = "";
   }
+  submittedSearch?.setAttribute("hidden", "");
+  searchCriteria?.replaceChildren();
+  updateSearchAvailability();
 }
 
 function setStatus(message, isError = false) {
@@ -118,3 +151,59 @@ function setStatus(message, isError = false) {
   status.textContent = message;
   status.dataset.state = isError ? "error" : "ready";
 }
+
+function updateSearchAvailability() {
+  if (searchSubmit) {
+    searchSubmit.disabled = !talentPool;
+  }
+
+  if (!talentPool) {
+    setSearchStatus("Upload a Talent Pool File before submitting a Search Request.");
+  } else {
+    setSearchStatus("Talent Pool is ready. Submit a natural-language Search Request.");
+  }
+}
+
+function renderSubmittedSearch(searchRequest, criteria) {
+  if (!submittedSearch || !submittedSearchRequest || !searchCriteria) {
+    return;
+  }
+
+  submittedSearchRequest.textContent = searchRequest;
+  searchCriteria.replaceChildren();
+
+  if (!criteria || Object.keys(criteria).length === 0) {
+    const emptyLabel = document.createElement("dt");
+    emptyLabel.textContent = "Status";
+
+    const empty = document.createElement("dd");
+    empty.className = "empty-criteria";
+    empty.textContent = "No Search Criteria could be interpreted from this Search Request yet.";
+    searchCriteria.append(emptyLabel, empty);
+  } else {
+    Object.entries(criteria).forEach(([label, value]) => {
+      appendDetail(searchCriteria, formatCriteriaLabel(label), formatCriteriaValue(value));
+    });
+  }
+
+  submittedSearch.hidden = false;
+}
+
+function formatCriteriaLabel(label) {
+  return label.replaceAll(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
+}
+
+function formatCriteriaValue(value) {
+  return Array.isArray(value) ? value.join(", ") : value;
+}
+
+function setSearchStatus(message, isError = false) {
+  if (!searchStatus) {
+    return;
+  }
+
+  searchStatus.textContent = message;
+  searchStatus.dataset.state = isError ? "error" : "ready";
+}
+
+updateSearchAvailability();
