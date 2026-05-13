@@ -3,18 +3,18 @@
   "permission": {
     "skill": {
       "brainstorming": "deny",
-      "dispatching-parallel-agents": "deny",
-      "executing-plans": "deny",
-      "finishing-a-development-branch": "deny",
+      "dispatching-parallel-agents": "allow",
+      "executing-plans": "allow",
+      "finishing-a-development-branch": "allow",
       "receiving-code-review": "deny",
       "requesting-code-review": "deny",
-      "subagent-driven-development": "deny",
+      "subagent-driven-development": "allow",
       "systematic-debugging": "deny",
       "test-driven-development": "deny",
       "using-git-worktrees": "deny",
-      "using-superpowers": "deny",
-      "verification-before-completion": "deny",
-      "writing-plans": "deny",
+      "using-superpowers": "allow",
+      "verification-before-completion": "allow",
+      "writing-plans": "allow",
       "writing-skills": "deny"
     }
   }
