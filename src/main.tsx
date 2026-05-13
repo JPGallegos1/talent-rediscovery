@@ -180,18 +180,109 @@ function NavLink({ to, label, icon, compact = false }: { to: "/" | "/talent-pool
 }
 
 function HomeRoute() {
+  const { session } = useAppSession();
+  const hasTalentPool = session.candidateRecordCount > 0;
+
+  if (!hasTalentPool) {
+    return <EmptyHomeView />;
+  }
+
+  return <ActiveHomeView />;
+}
+
+function EmptyHomeView() {
+  const { session } = useAppSession();
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+      <section className="flex flex-1 flex-col px-0 lg:px-10">
+        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center">
+          <div className="text-center">
+            <div className="mb-6 inline-flex items-center justify-center rounded-2xl bg-surface-low p-5 shadow-stitch-card">
+              <span className="material-symbols-outlined text-[40px] text-earth">database_off</span>
+            </div>
+            <h2 className="font-serif text-[40px] font-bold leading-10 tracking-[-0.02em] text-slate">
+              Your Talent Pool is Empty
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-lg leading-7 text-muted">
+              Upload your existing Candidate Records as a CSV to unlock evidence-grounded matching and semantic search through your Talent Pool.
+            </p>
+          </div>
+
+          <div className="mt-8 flex flex-col items-center gap-4">
+            <Link
+              to="/talent-pool"
+              className="inline-flex items-center gap-3 rounded-xl bg-slate-strong px-8 py-4 text-sm font-bold text-white shadow-lg transition hover:bg-slate hover:-translate-y-0.5"
+            >
+              <span className="material-symbols-outlined text-[24px]">cloud_upload</span>
+              <span className="text-base">Upload Talent Pool (CSV)</span>
+            </Link>
+
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-soft">
+              <span className="material-symbols-outlined text-[16px]">lock</span>
+              <span>Your data is processed in-memory only and remains strictly confidential.</span>
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-6 md:grid-cols-3">
+            <div className="relative overflow-hidden rounded-xl border border-outline-soft/10 bg-surface-lowest p-6 shadow-stitch-card">
+              <div className="absolute top-0 right-0 -mr-4 -mt-4 size-24 rounded-bl-full bg-surface-variant/20" />
+              <div className="relative z-10 mb-4 flex size-10 items-center justify-center rounded-full bg-surface text-lg font-bold text-slate">
+                1
+              </div>
+              <h3 className="relative z-10 font-serif text-xl font-semibold text-slate">Upload Data</h3>
+              <p className="relative z-10 mt-2 text-sm leading-6 text-muted">
+                Securely import your historical candidate CSV. Fields are mapped automatically.
+              </p>
+            </div>
+            <div className="relative overflow-hidden rounded-xl border border-outline-soft/10 bg-surface-lowest p-6 shadow-stitch-card">
+              <div className="absolute top-0 right-0 -mr-4 -mt-4 size-24 rounded-bl-full bg-surface-variant/20" />
+              <div className="relative z-10 mb-4 flex size-10 items-center justify-center rounded-full bg-surface text-lg font-bold text-slate">
+                2
+              </div>
+              <h3 className="relative z-10 font-serif text-xl font-semibold text-slate">Describe Need</h3>
+              <p className="relative z-10 mt-2 text-sm leading-6 text-muted">
+                Describe the role, required skills, and background using natural language.
+              </p>
+            </div>
+            <div className="relative overflow-hidden rounded-xl border border-outline-soft/10 bg-surface-lowest p-6 shadow-stitch-card">
+              <div className="absolute top-0 right-0 -mr-4 -mt-4 size-24 rounded-bl-full bg-surface-variant/20" />
+              <div className="relative z-10 mb-4 flex size-10 items-center justify-center rounded-full bg-surface text-lg font-bold text-slate">
+                3
+              </div>
+              <h3 className="relative z-10 font-serif text-xl font-semibold text-slate">Review Matches</h3>
+              <p className="relative z-10 mt-2 text-sm leading-6 text-muted">
+                Get a ranked Shortlist of Matches with evidence-based reasoning for each one.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 flex justify-center gap-6 border-t border-outline-soft/10 pt-6">
+            <span className="flex items-center gap-2 text-xs font-semibold text-slate">
+              <span className="material-symbols-outlined text-[18px]">menu_book</span>
+              Learn about Talent Rediscovery
+            </span>
+            <span className="flex items-center gap-2 text-xs font-semibold text-slate">
+              <span className="material-symbols-outlined text-[18px]">policy</span>
+              Privacy & Security
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <CopilotPanel mode="empty" />
+    </div>
+  );
+}
+
+function ActiveHomeView() {
   const { session, setSession } = useAppSession();
   const [draftSearchRequest, setDraftSearchRequest] = useState(session.searchRequest);
-  const [searchStatus, setSearchStatus] = useState("Load a Talent Pool File before running a Search Request.");
+  const [searchStatus, setSearchStatus] = useState("Describe the profile you need, then run a Search Request.");
   const hasTalentPool = session.candidateRecordCount > 0;
 
   function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!hasTalentPool) {
-      setSearchStatus("Upload a Talent Pool File before running a Search Request.");
-      return;
-    }
 
     const searchRequest = draftSearchRequest.trim();
 
@@ -218,17 +309,14 @@ function HomeRoute() {
       <div className="flex-1 space-y-6 overflow-y-auto">
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-earth">Home cockpit</p>
-            <h2 className="mt-2 font-serif text-[32px] font-semibold leading-10 tracking-[-0.01em] text-slate">
+            <h2 className="font-serif text-[32px] font-semibold leading-10 tracking-[-0.01em] text-slate">
               Talent Discovery Workspace
             </h2>
             <p className="mt-2 text-base leading-7 text-muted">Draft intent, review criteria, and uncover evidence-grounded Matches.</p>
           </div>
-          {hasTalentPool ? (
-            <span className="hidden rounded-full bg-surface-high px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted sm:inline-flex">
-              {session.candidateRecordCount} Candidate Records
-            </span>
-          ) : null}
+          <span className="hidden rounded-full bg-surface-high px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted sm:inline-flex">
+            {session.candidateRecordCount} Candidate Records
+          </span>
         </div>
 
         <SearchRequestForm
@@ -244,7 +332,7 @@ function HomeRoute() {
         <ShortlistSection matches={session.shortlist} />
       </div>
 
-      <CopilotPanel />
+      <CopilotPanel mode="active" />
     </div>
   );
 }
@@ -1001,19 +1089,29 @@ function getCandidateRecordLabel(match: Match) {
   return match.candidateRecord.canonicalFields.name || `Candidate Record ${match.candidateRecord.rowNumber}`;
 }
 
-function CopilotPanel() {
+function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
   const { session } = useAppSession();
 
   return (
     <aside className="mt-6 flex w-full flex-col overflow-hidden rounded-xl border border-outline-soft/20 bg-surface-low shadow-stitch-panel xl:mt-0 xl:ml-6 xl:w-[380px] xl:shrink-0">
       <div className="flex items-center justify-between border-b border-outline-soft/10 bg-surface/50 px-5 py-4 backdrop-blur">
         <div className="flex items-center gap-2 text-slate">
-          <span className="material-symbols-outlined">psychology</span>
-          <h3 className="font-serif text-xl font-semibold">Discovery Copilot</h3>
+          <div className="flex size-10 items-center justify-center rounded-full bg-earth-soft text-earth">
+            <span className="material-symbols-outlined fill text-[20px]">psychology</span>
+          </div>
+          <div>
+            <h3 className="font-serif text-xl font-semibold">Copilot</h3>
+            <div className="mt-0.5 flex items-center gap-1.5">
+              <span className={`size-2 rounded-full ${mode === "empty" ? "bg-evidence" : "bg-muted-soft"}`} />
+              <span className="text-xs font-semibold text-muted">
+                {mode === "empty" ? "Waiting for data" : "Ready"}
+              </span>
+            </div>
+          </div>
         </div>
         <button
           type="button"
-          className="rounded-full p-1 text-muted-soft transition hover:text-slate"
+          className="rounded-full p-2 text-muted-soft transition hover:bg-surface-variant/30 hover:text-slate"
           disabled
           aria-label="Copilot menu unavailable in MVP"
         >
@@ -1021,38 +1119,54 @@ function CopilotPanel() {
         </button>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-        {session.copilotTranscript.map((message, index) => {
-          const isCopilot = message.speaker === "copilot";
-          return (
-            <div key={`${message.speaker}-${index}`} className={`flex flex-col gap-1 ${isCopilot ? "items-start" : "items-end"}`}>
-              <span className="ml-1 text-xs font-semibold uppercase tracking-wider text-muted">
-                {isCopilot ? "Copilot" : "You"}
-              </span>
-              <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
-                  isCopilot
-                    ? "rounded-tl-sm border border-outline-soft/20 bg-surface-lowest text-ink"
-                    : "rounded-tr-sm bg-slate text-white"
-                }`}
-              >
-                {message.text}
-              </div>
+      <div className={`flex-1 space-y-4 overflow-y-auto px-5 py-4 ${mode === "empty" ? "bg-surface" : ""}`}>
+        {mode === "empty" ? (
+          <div className="flex max-w-[90%] gap-4">
+            <div className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-earth-soft text-earth">
+              <span className="material-symbols-outlined text-[16px]">psychology</span>
             </div>
-          );
-        })}
+            <div className="flex flex-col gap-2">
+              <div className="rounded-2xl rounded-tl-sm border border-outline-soft/20 bg-surface-lowest p-4 text-sm leading-6 text-ink shadow-sm">
+                Hello! I'm ready to help you rediscover talent. To get started, please upload your Talent Pool CSV file using the button above or in the sidebar.
+              </div>
+              <span className="ml-1 text-xs font-semibold text-muted-soft">Just now</span>
+            </div>
+          </div>
+        ) : (
+          <>
+            {session.copilotTranscript.map((message, index) => {
+              const isCopilot = message.speaker === "copilot";
+              return (
+                <div key={`${message.speaker}-${index}`} className={`flex flex-col gap-1 ${isCopilot ? "items-start" : "items-end"}`}>
+                  <span className="ml-1 text-xs font-semibold uppercase tracking-wider text-muted">
+                    {isCopilot ? "Copilot" : "You"}
+                  </span>
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
+                      isCopilot
+                        ? "rounded-tl-sm border border-outline-soft/20 bg-surface-lowest text-ink"
+                        : "rounded-tr-sm bg-slate text-white"
+                    }`}
+                  >
+                    {message.text}
+                  </div>
+                </div>
+              );
+            })}
 
-        <div className="flex items-start gap-2 rounded-lg border border-secondary/10 bg-secondary-container/30 px-4 py-3 text-sm leading-6 text-muted">
-          <span className="material-symbols-outlined shrink-0 text-[16px]">check_circle</span>
-          <span>Talent Rediscovery never sends outreach automatically. All message drafts require recruiter review before use.</span>
-        </div>
+            <div className="flex items-start gap-2 rounded-lg border border-secondary/10 bg-secondary-container/30 px-4 py-3 text-sm leading-6 text-muted">
+              <span className="material-symbols-outlined shrink-0 text-[16px]">check_circle</span>
+              <span>Talent Rediscovery never sends outreach automatically. All message drafts require recruiter review before use.</span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="border-t border-outline-soft/10 bg-surface px-5 py-4">
         <div className="flex items-center rounded-xl border border-outline-soft/30 bg-surface-lowest shadow-sm transition-all focus-within:border-slate focus-within:ring-1 focus-within:ring-slate/20">
           <textarea
             className="custom-scrollbar w-full resize-none border-none bg-transparent px-4 py-3 text-sm text-ink outline-none placeholder:text-muted-soft"
-            placeholder="Draft a new search intent..."
+            placeholder={mode === "empty" ? "Upload data to start chatting..." : "Draft a new search intent..."}
             rows={2}
             disabled
           />
@@ -1075,7 +1189,9 @@ function CopilotPanel() {
             </button>
           </div>
         </div>
-        <p className="mt-2 px-1 text-xs text-muted-soft">Chat Copilot is not active in this slice.</p>
+        <p className="mt-2 px-1 text-xs text-muted-soft">
+          {mode === "empty" ? "Copilot requires a Talent Pool to function." : "Chat Copilot is not active in this slice."}
+        </p>
       </div>
     </aside>
   );
