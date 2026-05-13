@@ -106,7 +106,8 @@ h1 {
 }
 
 .upload-panel,
-.preview-panel {
+.preview-panel,
+.search-panel {
   margin-top: 18px;
   border: 1px solid #d8cbb5;
   border-radius: 28px;
@@ -122,14 +123,17 @@ h1 {
 }
 
 .upload-panel h2,
-.preview-panel h2 {
+.preview-panel h2,
+.search-panel h2 {
   margin-bottom: 12px;
   font-size: clamp(1.7rem, 3vw, 2.6rem);
   letter-spacing: -0.04em;
 }
 
 .upload-panel p:not(.eyebrow),
-.upload-status {
+.upload-status,
+.search-panel p:not(.eyebrow),
+.search-status {
   margin-bottom: 0;
   color: #595246;
   line-height: 1.55;
@@ -163,6 +167,129 @@ h1 {
 .upload-status[data-state="error"] {
   background: #f9ded7;
   color: #742b1d;
+}
+
+.search-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(320px, 1.15fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.search-form {
+  display: grid;
+  gap: 12px;
+}
+
+.search-form label {
+  color: #8a4f16;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.search-form textarea {
+  width: 100%;
+  min-height: 150px;
+  border: 1px solid #d8cbb5;
+  border-radius: 20px;
+  background: #ffffff;
+  padding: 16px;
+  color: #1b1b18;
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.search-form textarea:focus {
+  outline: 3px solid rgb(240 167 53 / 35%);
+  outline-offset: 2px;
+}
+
+.search-form button {
+  justify-self: start;
+  border: 0;
+  border-radius: 999px;
+  background: #1f2d26;
+  color: #fffaf1;
+  padding: 12px 18px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.search-form button:disabled {
+  background: #c8bdab;
+  color: #5d5549;
+  cursor: not-allowed;
+}
+
+.search-status {
+  border-radius: 16px;
+  background: #eef5ec;
+  padding: 14px 16px;
+}
+
+.search-status[data-state="error"] {
+  background: #f9ded7;
+  color: #742b1d;
+}
+
+.submitted-search {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 16px;
+  border: 1px solid #dfd0b7;
+  border-radius: 22px;
+  background: #ffffff;
+  padding: 20px;
+}
+
+.submitted-search blockquote {
+  margin: 0;
+  border-left: 5px solid #f0a735;
+  padding-left: 16px;
+  color: #312d26;
+  font-size: 1.15rem;
+  line-height: 1.5;
+}
+
+.criteria-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(260px, 1.2fr);
+  gap: 18px;
+  border-radius: 18px;
+  background: #f6f1e8;
+  padding: 18px;
+}
+
+.criteria-panel h3 {
+  margin: 0 0 8px;
+  letter-spacing: -0.03em;
+}
+
+.criteria-panel dl {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 10px 14px;
+  margin: 0;
+}
+
+.criteria-panel dt {
+  color: #8a4f16;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.criteria-panel dd {
+  margin: 0;
+  color: #312d26;
+}
+
+.empty-criteria {
+  grid-column: 1 / -1;
 }
 
 .preview-heading {
@@ -235,6 +362,8 @@ h1 {
   }
 
   .upload-panel,
+  .search-panel,
+  .criteria-panel,
   .record-grid {
     grid-template-columns: 1fr;
   }

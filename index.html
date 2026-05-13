@@ -72,6 +72,43 @@
 
         <div class="record-grid" data-record-grid></div>
       </section>
+
+      <section class="search-panel" aria-labelledby="search-title">
+        <div>
+          <p class="eyebrow">Text-first Search Request</p>
+          <h2 id="search-title">Describe the profile you need</h2>
+          <p>
+            Type a natural-language Search Request after uploading a Talent Pool File. Interpreted
+            Search Criteria are shown for transparency only; revise the Search Request text to change them.
+          </p>
+        </div>
+
+        <form class="search-form" data-search-form>
+          <label for="search-request">Search Request</label>
+          <textarea
+            id="search-request"
+            rows="5"
+            placeholder="Example: Senior React profiles with fintech experience, good English, remote Colombia"
+            data-search-request
+          ></textarea>
+          <button type="submit" data-search-submit disabled>Submit Search Request</button>
+          <p class="search-status" data-search-status aria-live="polite">
+            Upload a Talent Pool File before submitting a Search Request.
+          </p>
+        </form>
+
+        <article class="submitted-search" data-submitted-search hidden>
+          <p class="eyebrow">Submitted Search Request</p>
+          <blockquote data-submitted-search-request></blockquote>
+          <div class="criteria-panel">
+            <div>
+              <h3>Interpreted Search Criteria</h3>
+              <p>No manual filter editing in this prototype. Revise and resubmit the Search Request instead.</p>
+            </div>
+            <dl data-search-criteria></dl>
+          </div>
+        </article>
+      </section>
     </main>
   </body>
 </html>
