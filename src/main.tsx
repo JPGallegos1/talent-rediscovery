@@ -372,6 +372,36 @@ function getDuplicateWarning(record: CandidateRecord, records: CandidateRecord[]
 }
 
 function MatchDetailRoute() {
+  const { matchId } = matchRoute.useParams();
+  const { session } = useAppSession();
+  const match = session.shortlist.find((candidateMatch) => getMatchId(candidateMatch) === matchId);
+
+  if (match) {
+    return (
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <article className="rounded-2xl border border-outline-soft bg-surface-lowest p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-earth">Session-scoped Match detail</p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="font-serif text-4xl font-semibold text-slate">{getCandidateRecordLabel(match)}</h1>
+              <p className="mt-2 text-muted">{match.candidateRecord.canonicalFields.currentRole || "Role not provided"}</p>
+            </div>
+            <span className="rounded-full bg-slate px-4 py-2 text-sm font-semibold text-white">{match.strength}</span>
+          </div>
+          <DetailSection title="Reasons" items={match.reasons} />
+          <DetailSection title="Candidate Record evidence" items={match.evidence.map((item) => `${item.label}: ${item.value} (${item.matched})`)} />
+          <DetailSection title="Gaps" items={match.gaps} />
+        </article>
+
+        <aside className="rounded-2xl border border-outline-soft bg-surface-low p-6">
+          <h2 className="font-serif text-xl font-semibold text-slate">Suggested Next Action</h2>
+          <p className="mt-3 text-sm leading-6 text-muted">{match.suggestedNextAction}</p>
+          <DetailSection title="Risks" items={match.risks} compact />
+        </aside>
+      </section>
+    );
+  }
+
   return (
     <section className="rounded-2xl border border-outline-soft bg-surface-lowest p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-earth">Session-scoped Match detail</p>
@@ -435,6 +465,9 @@ function ShortlistPanel({ matches }: { matches: Match[] }) {
                 <SummaryList title="Reasons" items={match.reasons.slice(0, 2)} />
                 <SummaryList title="Evidence" items={match.evidence.slice(0, 2).map((item) => `${item.label}: ${item.value}`)} />
               </div>
+              <Link to="/matches/$matchId" params={{ matchId: getMatchId(match) }} className="mt-4 inline-flex text-sm font-semibold text-slate hover:text-earth">
+                Open Match detail
+              </Link>
             </article>
           ))}
         </div>
@@ -455,6 +488,21 @@ function SummaryList({ title, items }: { title: string; items: string[] }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+function DetailSection({ title, items, compact = false }: { title: string; items: string[]; compact?: boolean }) {
+  return (
+    <section className={compact ? "mt-6" : "mt-8"}>
+      <h2 className="font-serif text-xl font-semibold text-slate">{title}</h2>
+      <ul className="mt-3 space-y-2 text-sm leading-6 text-muted">
+        {items.map((item) => (
+          <li key={item} className="rounded-lg bg-surface-low px-3 py-2">
+            {item}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
