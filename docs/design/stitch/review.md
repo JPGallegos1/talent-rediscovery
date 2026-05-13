@@ -34,13 +34,27 @@ Stitch is a visual starting point only. `CONTEXT.md`, the ADRs, and the current 
 
 ## Route-Specific Notes
 
-### `/` Home / Copilot Cockpit
+### `/` Home — Empty State (first-time user)
 
-Use the `copilot_cockpit_talent_rediscovery` layout as the strongest starting point, but correct the domain language.
+Use `docs/design/stitch/home/` as the authoritative design for first-time users who have not yet loaded a Talent Pool.
 
 Implementation translation:
 
-- Main center area: current Search Request, read-only Search Criteria, and current Shortlist.
+- Full-page centered hero with `database_off` icon, "Your Talent Pool is Empty" heading, and description.
+- Prominent "Upload Talent Pool (CSV)" CTA linking to `/talent-pool`.
+- Privacy note: "Your data is processed in-memory only and remains strictly confidential."
+- Steps bento grid (3 cards: Upload Data → Describe Need → Review Matches) for product education.
+- Educational links at bottom ("Learn about Talent Rediscovery", "Privacy & Security").
+- Right-side Copilot panel shows "Waiting for data" status and welcome message; input is disabled with "Upload data to start chatting..." placeholder.
+- `SearchRequestForm` (text area + submit) must NOT appear in this state.
+
+### `/` Home — Active Workspace (Candidate Records loaded)
+
+Use `docs/design/stitch/copilot_cockpit_talent_rediscovery/` as the design basis for users who have loaded a Talent Pool. This state activates after a CSV upload provides Candidate Records.
+
+Implementation translation:
+
+- Main center area: current Search Request, read-only Interpreted Search Criteria, and current Shortlist.
 - Right panel: Chat Copilot first; Voice Copilot controls can be present but may remain disabled until realtime is implemented.
 - Navigation label should be `Home` or an equivalent product-home label, even if the visual export calls it `Copilot`.
 - Search Request creation should be explicit: chat can draft or propose a Search Request, but building a Shortlist requires a clear run action.
