@@ -12,7 +12,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "check": "tsc --noEmit && node --check scripts/dev-server.js && node --check src/csv-candidate-records.js && node --check src/search-criteria.js && node --check src/shortlist-matches.js && node --check src/message-draft.js && node --check src/prototype-shell.js && node --check scripts/check-csv-parser.js && node --check scripts/check-search-criteria.js && node --check scripts/check-shortlist-matches.js && node --check scripts/check-message-draft.js",
+    "check": "tsc --noEmit && node --check src/csv-candidate-records.js && node --check src/search-criteria.js && node --check src/shortlist-matches.js && node --check src/message-draft.js && node --check scripts/check-csv-parser.js && node --check scripts/check-search-criteria.js && node --check scripts/check-shortlist-matches.js && node --check scripts/check-message-draft.js",
     "check:csv": "node scripts/check-csv-parser.js",
     "check:search-criteria": "node scripts/check-search-criteria.js",
     "check:shortlist": "node scripts/check-shortlist-matches.js",
@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@tanstack/react-router": "^1.169.2",
+    "@tanstack/react-table": "^8.21.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },
