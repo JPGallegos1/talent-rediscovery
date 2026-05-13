@@ -54,29 +54,30 @@ function renderPreview(candidateRecords, fileName) {
 }
 
 function createRecordCard(candidateRecord) {
+  const { canonicalFields } = candidateRecord;
   const card = document.createElement("article");
   card.className = "record-card";
 
   const title = document.createElement("h3");
-  title.textContent = candidateRecord.name || `Candidate Record ${candidateRecord.rowNumber}`;
+  title.textContent = canonicalFields.name || `Candidate Record ${candidateRecord.rowNumber}`;
 
   const role = document.createElement("p");
   role.className = "record-role";
-  role.textContent = candidateRecord.currentRole || "Role not provided";
+  role.textContent = canonicalFields.currentRole || "Role not provided";
 
   const details = document.createElement("dl");
-  appendDetail(details, "Location", candidateRecord.location);
-  appendDetail(details, "Experience", formatExperience(candidateRecord.yearsExperience));
-  appendDetail(details, "English", candidateRecord.englishLevel);
-  appendDetail(details, "Availability", candidateRecord.availability);
-  appendDetail(details, "Industries", candidateRecord.industries.join(", "));
-  appendDetail(details, "Skills", candidateRecord.skills.join(", "));
-  appendDetail(details, "Last contact", candidateRecord.lastContactDate);
-  appendDetail(details, "Source", candidateRecord.source);
+  appendDetail(details, "Location", canonicalFields.location);
+  appendDetail(details, "Experience", formatExperience(canonicalFields.yearsExperience));
+  appendDetail(details, "English", canonicalFields.englishLevel);
+  appendDetail(details, "Availability", canonicalFields.availability);
+  appendDetail(details, "Industries", canonicalFields.industries.join(", "));
+  appendDetail(details, "Skills", canonicalFields.skills.terms.join(", "));
+  appendDetail(details, "Last contact", canonicalFields.lastContactDate);
+  appendDetail(details, "Source", canonicalFields.source);
 
   const notes = document.createElement("p");
   notes.className = "record-notes";
-  notes.textContent = candidateRecord.notes || "No notes preserved for this Candidate Record.";
+  notes.textContent = canonicalFields.notes || "No notes preserved for this Candidate Record.";
 
   card.append(title, role, details, notes);
   return card;
