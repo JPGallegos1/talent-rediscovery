@@ -9,11 +9,27 @@
     "pnpm": ">=10"
   },
   "scripts": {
-    "dev": "node scripts/dev-server.js",
-    "check": "node --check scripts/dev-server.js && node --check src/csv-candidate-records.js && node --check src/search-criteria.js && node --check src/shortlist-matches.js && node --check src/message-draft.js && node --check src/prototype-shell.js && node --check scripts/check-csv-parser.js && node --check scripts/check-search-criteria.js && node --check scripts/check-shortlist-matches.js && node --check scripts/check-message-draft.js",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "check": "tsc --noEmit && node --check scripts/dev-server.js && node --check src/csv-candidate-records.js && node --check src/search-criteria.js && node --check src/shortlist-matches.js && node --check src/message-draft.js && node --check src/prototype-shell.js && node --check scripts/check-csv-parser.js && node --check scripts/check-search-criteria.js && node --check scripts/check-shortlist-matches.js && node --check scripts/check-message-draft.js",
     "check:csv": "node scripts/check-csv-parser.js",
     "check:search-criteria": "node scripts/check-search-criteria.js",
     "check:shortlist": "node scripts/check-shortlist-matches.js",
     "check:message-draft": "node scripts/check-message-draft.js"
+  },
+  "dependencies": {
+    "@tanstack/react-router": "^1.169.2",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.12"
   }
 }
