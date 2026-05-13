@@ -210,72 +210,256 @@ function HomeRoute() {
       shortlist,
       selectedMatchId: null,
     }));
-    setSearchStatus(`Search Request run. Returned ${shortlist.length} Matches in an ephemeral Shortlist.`);
+    setSearchStatus(`Search Request run. Returned ${shortlist.length} Matches in the Shortlist.`);
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-      <section className="space-y-6">
-        <header className="rounded-2xl border border-outline-soft bg-surface-lowest p-6 shadow-[0_4px_20px_rgba(63,78,79,0.05)] sm:p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-earth">Home cockpit</p>
-          <h1 className="mt-4 max-w-3xl font-serif text-4xl font-semibold leading-tight text-slate sm:text-5xl">
-            Rediscover the Candidates already in your Talent Pool.
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-muted">
-            Use a Search Request to create an ephemeral Shortlist of evidence-grounded Matches. Search Criteria are shown for transparency and stay read-only.
-          </p>
-        </header>
+    <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+      <div className="flex-1 space-y-6 overflow-y-auto">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-earth">Home cockpit</p>
+            <h2 className="mt-2 font-serif text-[32px] font-semibold leading-10 tracking-[-0.01em] text-slate">
+              Talent Discovery Workspace
+            </h2>
+            <p className="mt-2 text-base leading-7 text-muted">Draft intent, review criteria, and uncover evidence-grounded Matches.</p>
+          </div>
+          {hasTalentPool ? (
+            <span className="hidden rounded-full bg-surface-high px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted sm:inline-flex">
+              {session.candidateRecordCount} Candidate Records
+            </span>
+          ) : null}
+        </div>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          <MetricCard label="Talent Pool" value={session.talentPoolFileName ?? "Not loaded"} />
-          <MetricCard label="Candidate Records" value={String(session.candidateRecordCount)} />
-          <MetricCard label="Matches returned" value={String(session.shortlist.length)} />
-        </section>
+        <SearchRequestForm
+          draftSearchRequest={draftSearchRequest}
+          onDraftChange={setDraftSearchRequest}
+          searchStatus={searchStatus}
+          hasTalentPool={hasTalentPool}
+          onSubmit={handleSearchSubmit}
+        />
 
-        <section className="rounded-2xl border border-outline-soft bg-surface-lowest p-6">
-          <form className="space-y-5" onSubmit={handleSearchSubmit}>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-earth">Search Request</p>
-              <h2 className="mt-2 font-serif text-2xl font-semibold text-slate">Run a Search Request explicitly</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-                The Copilot can draft recruiter intent, but Talent Rediscovery should only run a Search Request after an explicit recruiter action.
-              </p>
-            </div>
-            <label className="grid gap-2 text-sm font-semibold text-slate" htmlFor="search-request">
-              Search Request
-              <textarea
-                id="search-request"
-                className="min-h-32 rounded-xl border border-outline-soft bg-surface-lowest p-4 text-base font-normal leading-7 text-ink outline-none transition focus:border-slate"
-                placeholder="Example: Senior React profiles with fintech experience, good English, remote Colombia"
-                value={draftSearchRequest}
-                onChange={(event) => setDraftSearchRequest(event.target.value)}
-              />
-            </label>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm leading-6 text-muted" aria-live="polite">
-                {searchStatus}
-              </p>
-              {hasTalentPool ? (
-                <button type="submit" className="rounded-lg bg-slate px-4 py-3 text-sm font-semibold text-white hover:bg-slate-strong">
-                  Run Search Request
-                </button>
-              ) : (
-                <Link to="/talent-pool" className="rounded-lg bg-slate px-4 py-3 text-sm font-semibold text-white hover:bg-slate-strong">
-                  Load Talent Pool File
-                </Link>
-              )}
-            </div>
-          </form>
-        </section>
+        <SearchCriteriaPanel searchCriteria={session.searchCriteria} searchRequest={session.searchRequest} />
 
-        <section className="grid gap-6 lg:grid-cols-2">
-          <InfoPanel title="Interpreted Search Criteria" emptyText="Search Criteria will appear here as read-only information after a Search Request runs." items={formatSearchCriteria(session.searchCriteria)} />
-          <ShortlistPanel matches={session.shortlist} />
-        </section>
-      </section>
+        <ShortlistSection matches={session.shortlist} />
+      </div>
 
       <CopilotPanel />
     </div>
+  );
+}
+
+function SearchRequestForm({
+  draftSearchRequest,
+  onDraftChange,
+  searchStatus,
+  hasTalentPool,
+  onSubmit,
+}: {
+  draftSearchRequest: string;
+  onDraftChange: (value: string) => void;
+  searchStatus: string;
+  hasTalentPool: boolean;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <section className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card">
+      <form className="space-y-5" onSubmit={onSubmit}>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-earth">Search Request</p>
+          <h3 className="mt-2 font-serif text-xl font-semibold text-slate">Describe the profile you need</h3>
+          <p className="mt-2 text-sm leading-6 text-muted">
+            The Copilot can help draft recruiter intent, but building a Shortlist requires an explicit run action.
+          </p>
+        </div>
+        <label className="grid gap-2 text-sm font-semibold text-slate" htmlFor="search-request">
+          Search Request
+          <textarea
+            id="search-request"
+            className="min-h-28 rounded-xl border border-outline-soft/30 bg-surface-lowest p-4 text-base font-normal leading-7 text-ink outline-none transition focus:border-slate"
+            placeholder='Example: "Senior React profiles with fintech experience, good English, remote Colombia"'
+            value={draftSearchRequest}
+            onChange={(event) => onDraftChange(event.target.value)}
+          />
+        </label>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm leading-6 text-muted" aria-live="polite">
+            {searchStatus}
+          </p>
+          {hasTalentPool ? (
+            <button type="submit" className="rounded-lg bg-slate-strong px-4 py-3 text-sm font-bold text-white transition hover:bg-slate">
+              Run Search Request
+            </button>
+          ) : (
+            <Link to="/talent-pool" className="rounded-lg bg-slate-strong px-4 py-3 text-sm font-bold text-white transition hover:bg-slate">
+              Load Talent Pool File
+            </Link>
+          )}
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function SearchCriteriaPanel({
+  searchCriteria,
+  searchRequest,
+}: {
+  searchCriteria: SearchCriteria | null;
+  searchRequest: string;
+}) {
+  if (!searchCriteria || Object.keys(searchCriteria).length === 0) {
+    return null;
+  }
+
+  const entities: { label: string; value: string; color: string }[] = [];
+
+  if (searchCriteria.skills && searchCriteria.skills.length > 0) {
+    entities.push({ label: `Skills: ${searchCriteria.skills.join(", ")}`, value: "skill", color: "slate" });
+  }
+  if (searchCriteria.seniority) {
+    entities.push({ label: `Seniority: ${searchCriteria.seniority}`, value: "seniority", color: "slate" });
+  }
+  if (searchCriteria.location && searchCriteria.location.length > 0) {
+    entities.push({ label: `Location: ${searchCriteria.location.join(", ")}`, value: "location", color: "slate" });
+  }
+  if (searchCriteria.industry && searchCriteria.industry.length > 0) {
+    entities.push({ label: `Industry: ${searchCriteria.industry.join(", ")}`, value: "industry", color: "earth" });
+  }
+  if (searchCriteria.languageLevel) {
+    entities.push({ label: `Language: ${searchCriteria.languageLevel}`, value: "language", color: "slate" });
+  }
+  if (searchCriteria.availability) {
+    entities.push({ label: `Availability: ${searchCriteria.availability}`, value: "availability", color: "slate" });
+  }
+
+  return (
+    <section className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card">
+      <div className="mb-4 flex items-center gap-2 border-b border-outline-soft/10 pb-4">
+        <span className="material-symbols-outlined text-earth">tune</span>
+        <h3 className="font-serif text-xl font-semibold text-slate">Interpreted Search Criteria</h3>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <div>
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Primary Intent</h4>
+          <p className="text-base leading-7 text-ink">{searchRequest}</p>
+        </div>
+        <div>
+          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Extracted Criteria</h4>
+          <div className="flex flex-wrap gap-2">
+            {entities.length > 0 ? (
+              entities.map((entity) => (
+                <span
+                  key={entity.value}
+                  className={`rounded px-3 py-1 text-xs font-semibold ${
+                    entity.color === "earth"
+                      ? "bg-earth-soft text-earth"
+                      : "bg-slate-soft text-slate"
+                  }`}
+                >
+                  {entity.label}
+                </span>
+              ))
+            ) : (
+              <span className="text-sm text-muted">No structured criteria could be interpreted.</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ShortlistSection({ matches }: { matches: Match[] }) {
+  return (
+    <section>
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="font-serif text-xl font-semibold text-slate">Ranked Shortlist</h3>
+        {matches.length > 0 ? (
+          <span className="rounded bg-surface-high px-2 py-1 text-xs font-semibold text-muted">
+            {matches.length} Matches found
+          </span>
+        ) : null}
+      </div>
+      {matches.length > 0 ? (
+        <div className="space-y-4">
+          {matches.map((match, index) => (
+            <MatchCard key={getMatchId(match)} match={match} index={index} />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-8 text-center shadow-stitch-card">
+          <span className="material-symbols-outlined mb-4 text-[48px] text-slate/40">folder_open</span>
+          <h3 className="font-serif text-xl font-semibold text-slate">No Matches yet</h3>
+          <p className="mt-2 max-w-md text-sm leading-6 text-muted">
+            Load a Talent Pool File and explicitly run a Search Request to create an ephemeral Shortlist.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MatchCard({ match, index }: { match: Match; index: number }) {
+  return (
+    <Link
+      to="/matches/$matchId"
+      params={{ matchId: getMatchId(match) }}
+      className="relative block rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card transition-shadow hover:shadow-md"
+    >
+      <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-earth" />
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-earth">Match {index + 1}</p>
+          <h4 className="mt-1 font-serif text-xl font-semibold text-slate">{getCandidateRecordLabel(match)}</h4>
+          <p className="mt-1 text-sm text-muted">{match.candidateRecord.canonicalFields.currentRole || "Role not provided"}</p>
+        </div>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${
+          match.strength === "Strong"
+            ? "bg-evidence-soft text-evidence"
+            : match.strength === "Possible"
+            ? "bg-secondary-soft text-secondary-strong"
+            : "bg-risk-soft text-risk"
+        }`}>
+          {match.strength}
+        </span>
+      </div>
+      <div className="grid gap-4 border-t border-outline-soft/10 pt-4 sm:grid-cols-2">
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Evidence</p>
+          <ul className="space-y-1 text-sm leading-6 text-ink">
+            {match.reasons.slice(0, 3).map((reason) => (
+              <li key={reason} className="flex items-start gap-2">
+                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-evidence" />
+                {reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Gaps & Risks</p>
+          {match.gaps.length > 0 || match.risks.length > 0 ? (
+            <ul className="space-y-1 text-sm leading-6 text-muted">
+              {match.gaps.slice(0, 1).map((gap) => (
+                <li key={gap} className="flex items-start gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-secondary-strong" />
+                  {gap}
+                </li>
+              ))}
+              {match.risks.slice(0, 1).map((risk) => (
+                <li key={risk} className="flex items-start gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-risk" />
+                  {risk}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted">No significant gaps or risks identified.</p>
+          )}
+        </div>
+      </div>
+      <p className="mt-4 text-sm font-semibold text-slate">{match.suggestedNextAction}</p>
+    </Link>
   );
 }
 
@@ -543,80 +727,7 @@ function MatchDetailRoute() {
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <article className="rounded-2xl border border-outline-soft bg-surface-lowest p-5">
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">{label}</p>
-      <p className="mt-3 font-serif text-2xl font-semibold text-slate">{value}</p>
-    </article>
-  );
-}
 
-function InfoPanel({ title, emptyText, items = [] }: { title: string; emptyText: string; items?: string[] }) {
-  return (
-    <section className="rounded-2xl border border-outline-soft bg-surface-lowest p-6">
-      <h2 className="font-serif text-2xl font-semibold text-slate">{title}</h2>
-      {items.length > 0 ? (
-        <ul className="mt-4 space-y-3 text-sm leading-6 text-muted">
-          {items.map((item) => (
-            <li key={item} className="rounded-lg bg-surface-low px-3 py-2">
-              {item}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-4 rounded-lg bg-surface-low px-3 py-3 text-sm leading-6 text-muted">{emptyText}</p>
-      )}
-    </section>
-  );
-}
-
-function ShortlistPanel({ matches }: { matches: Match[] }) {
-  return (
-    <section className="rounded-2xl border border-outline-soft bg-surface-lowest p-6">
-      <h2 className="font-serif text-2xl font-semibold text-slate">Current Shortlist</h2>
-      {matches.length > 0 ? (
-        <div className="mt-4 space-y-4">
-          {matches.map((match, index) => (
-            <article key={getMatchId(match)} className="rounded-xl border border-outline-soft bg-surface-low p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-earth">Match {index + 1}</p>
-                  <h3 className="mt-2 font-serif text-xl font-semibold text-slate">{getCandidateRecordLabel(match)}</h3>
-                  <p className="mt-1 text-sm text-muted">{match.candidateRecord.canonicalFields.currentRole || "Role not provided"}</p>
-                </div>
-                <span className="rounded-full bg-slate px-3 py-1 text-xs font-semibold text-white">{match.strength}</span>
-              </div>
-              <p className="mt-3 text-sm leading-6 text-muted">{match.suggestedNextAction}</p>
-              <div className="mt-3 grid gap-3 text-sm leading-6 text-muted sm:grid-cols-2">
-                <SummaryList title="Reasons" items={match.reasons.slice(0, 2)} />
-                <SummaryList title="Evidence" items={match.evidence.slice(0, 2).map((item) => `${item.label}: ${item.value}`)} />
-              </div>
-              <Link to="/matches/$matchId" params={{ matchId: getMatchId(match) }} className="mt-4 inline-flex text-sm font-semibold text-slate hover:text-earth">
-                Open Match detail
-              </Link>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-4 rounded-lg bg-surface-low px-3 py-3 text-sm leading-6 text-muted">No Matches yet. Load a Talent Pool File and explicitly run a Search Request.</p>
-      )}
-    </section>
-  );
-}
-
-function SummaryList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div>
-      <h4 className="font-semibold text-slate">{title}</h4>
-      <ul className="mt-1 list-disc space-y-1 pl-5">
-        {items.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
 
 function DetailSection({ title, items, compact = false }: { title: string; items: string[]; compact?: boolean }) {
   return (
@@ -633,18 +744,6 @@ function DetailSection({ title, items, compact = false }: { title: string; items
   );
 }
 
-function formatSearchCriteria(searchCriteria: SearchCriteria | null) {
-  if (!searchCriteria || Object.keys(searchCriteria).length === 0) {
-    return [];
-  }
-
-  return Object.entries(searchCriteria).map(([key, value]) => `${formatCriteriaLabel(key)}: ${Array.isArray(value) ? value.join(", ") : value}`);
-}
-
-function formatCriteriaLabel(key: string) {
-  return key.replaceAll(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
-}
-
 function getMatchId(match: Match) {
   return `row-${match.candidateRecord.rowNumber}`;
 }
@@ -657,23 +756,78 @@ function CopilotPanel() {
   const { session } = useAppSession();
 
   return (
-    <aside className="rounded-2xl border border-outline-soft bg-surface-lowest p-6 xl:sticky xl:top-8 xl:self-start">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-earth">Chat Copilot shell</p>
-      <h2 className="mt-3 font-serif text-2xl font-semibold text-slate">Constrained Intelligence Layer</h2>
-      <p className="mt-3 text-sm leading-6 text-muted">
-        The Copilot can help create Search Requests and navigate Matches later. It cannot modify Candidate Records, edit Search Criteria manually, send outreach, or persist Talent Pools.
-      </p>
-      <div className="mt-5 space-y-3">
-        {session.copilotTranscript.map((message, index) => (
-          <p key={`${message.speaker}-${index}`} className="rounded-xl bg-surface-low p-4 text-sm leading-6 text-muted">
-            <span className="font-semibold text-slate">{message.speaker === "copilot" ? "Copilot" : "Recruiter"}: </span>
-            {message.text}
-          </p>
-        ))}
+    <aside className="mt-6 flex w-full flex-col overflow-hidden rounded-xl border border-outline-soft/20 bg-surface-low shadow-stitch-panel xl:mt-0 xl:ml-6 xl:w-[380px] xl:shrink-0">
+      <div className="flex items-center justify-between border-b border-outline-soft/10 bg-surface/50 px-5 py-4 backdrop-blur">
+        <div className="flex items-center gap-2 text-slate">
+          <span className="material-symbols-outlined">psychology</span>
+          <h3 className="font-serif text-xl font-semibold">Discovery Copilot</h3>
+        </div>
+        <button
+          type="button"
+          className="rounded-full p-1 text-muted-soft transition hover:text-slate"
+          disabled
+          aria-label="Copilot menu unavailable in MVP"
+        >
+          <span className="material-symbols-outlined text-[20px]">more_vert</span>
+        </button>
       </div>
-      <button className="mt-5 w-full rounded-lg border border-outline-soft px-4 py-3 text-sm font-semibold text-muted" disabled>
-        Voice Copilot is not active in this slice
-      </button>
+
+      <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        {session.copilotTranscript.map((message, index) => {
+          const isCopilot = message.speaker === "copilot";
+          return (
+            <div key={`${message.speaker}-${index}`} className={`flex flex-col gap-1 ${isCopilot ? "items-start" : "items-end"}`}>
+              <span className="ml-1 text-xs font-semibold uppercase tracking-wider text-muted">
+                {isCopilot ? "Copilot" : "You"}
+              </span>
+              <div
+                className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
+                  isCopilot
+                    ? "rounded-tl-sm border border-outline-soft/20 bg-surface-lowest text-ink"
+                    : "rounded-tr-sm bg-slate text-white"
+                }`}
+              >
+                {message.text}
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="flex items-start gap-2 rounded-lg border border-secondary/10 bg-secondary-container/30 px-4 py-3 text-sm leading-6 text-muted">
+          <span className="material-symbols-outlined shrink-0 text-[16px]">check_circle</span>
+          <span>Talent Rediscovery never sends outreach automatically. All message drafts require recruiter review before use.</span>
+        </div>
+      </div>
+
+      <div className="border-t border-outline-soft/10 bg-surface px-5 py-4">
+        <div className="flex items-center rounded-xl border border-outline-soft/30 bg-surface-lowest shadow-sm transition-all focus-within:border-slate focus-within:ring-1 focus-within:ring-slate/20">
+          <textarea
+            className="custom-scrollbar w-full resize-none border-none bg-transparent px-4 py-3 text-sm text-ink outline-none placeholder:text-muted-soft"
+            placeholder="Draft a new search intent..."
+            rows={2}
+            disabled
+          />
+          <div className="flex shrink-0 items-center gap-1 pr-2 pb-2 self-end">
+            <button
+              type="button"
+              className="flex size-8 items-center justify-center rounded-full text-muted-soft transition hover:text-slate"
+              disabled
+              aria-label="Voice Copilot not active in this slice"
+            >
+              <span className="material-symbols-outlined text-[20px]">mic</span>
+            </button>
+            <button
+              type="button"
+              className="flex size-8 items-center justify-center rounded-full bg-earth text-white shadow-sm transition hover:bg-earth-strong"
+              disabled
+              aria-label="Send message"
+            >
+              <span className="material-symbols-outlined text-[18px]">send</span>
+            </button>
+          </div>
+        </div>
+        <p className="mt-2 px-1 text-xs text-muted-soft">Chat Copilot is not active in this slice.</p>
+      </div>
     </aside>
   );
 }
