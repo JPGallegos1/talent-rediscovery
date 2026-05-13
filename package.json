@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "node scripts/dev-server.js",
-    "check": "node --check scripts/dev-server.js && node --check src/prototype-shell.js"
+    "check": "node --check scripts/dev-server.js && node --check src/csv-candidate-records.js && node --check src/prototype-shell.js && node --check scripts/check-csv-parser.js",
+    "check:csv": "node scripts/check-csv-parser.js"
   }
 }

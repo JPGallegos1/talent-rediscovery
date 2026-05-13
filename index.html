@@ -40,6 +40,38 @@
           <p>Matches include reasons, evidence, gaps, risks, and a Suggested Next Action.</p>
         </article>
       </section>
+
+      <section class="upload-panel" aria-labelledby="upload-title">
+        <div>
+          <p class="eyebrow">In-memory CSV intake</p>
+          <h2 id="upload-title">Upload a CSV Talent Pool File</h2>
+          <p>
+            Select a CSV file to parse rows into Candidate Records and preview normalized fields.
+            The uploaded Talent Pool stays in browser memory only.
+          </p>
+        </div>
+
+        <label class="file-picker">
+          <span>Choose CSV Talent Pool File</span>
+          <input type="file" accept=".csv,text/csv" data-talent-pool-file />
+        </label>
+
+        <p class="upload-status" data-upload-status aria-live="polite">
+          No Talent Pool File selected yet.
+        </p>
+      </section>
+
+      <section class="preview-panel" aria-labelledby="preview-title" data-preview-panel hidden>
+        <div class="preview-heading">
+          <div>
+            <p class="eyebrow">Candidate Record preview</p>
+            <h2 id="preview-title">Parsed Candidate Records</h2>
+          </div>
+          <p data-record-count></p>
+        </div>
+
+        <div class="record-grid" data-record-grid></div>
+      </section>
     </main>
   </body>
 </html>

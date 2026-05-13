@@ -105,9 +105,138 @@ h1 {
   line-height: 1.45;
 }
 
+.upload-panel,
+.preview-panel {
+  margin-top: 18px;
+  border: 1px solid #d8cbb5;
+  border-radius: 28px;
+  background: #fffaf1;
+  padding: clamp(24px, 4vw, 40px);
+}
+
+.upload-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+  gap: 24px;
+  align-items: center;
+}
+
+.upload-panel h2,
+.preview-panel h2 {
+  margin-bottom: 12px;
+  font-size: clamp(1.7rem, 3vw, 2.6rem);
+  letter-spacing: -0.04em;
+}
+
+.upload-panel p:not(.eyebrow),
+.upload-status {
+  margin-bottom: 0;
+  color: #595246;
+  line-height: 1.55;
+}
+
+.file-picker {
+  display: grid;
+  gap: 14px;
+  border: 1px dashed #8a4f16;
+  border-radius: 22px;
+  background: #f6f1e8;
+  padding: 24px;
+  color: #3f3324;
+  font-weight: 800;
+}
+
+.file-picker input {
+  width: 100%;
+  color: #595246;
+  font: inherit;
+  font-weight: 600;
+}
+
+.upload-status {
+  grid-column: 1 / -1;
+  border-radius: 16px;
+  background: #eef5ec;
+  padding: 14px 16px;
+}
+
+.upload-status[data-state="error"] {
+  background: #f9ded7;
+  color: #742b1d;
+}
+
+.preview-heading {
+  display: flex;
+  gap: 16px;
+  align-items: start;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+
+.preview-heading p:last-child {
+  margin: 0;
+  border-radius: 999px;
+  background: #1f2d26;
+  color: #fffaf1;
+  padding: 8px 12px;
+  font-weight: 800;
+}
+
+.record-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.record-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #dfd0b7;
+  border-radius: 20px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.record-card h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  letter-spacing: -0.03em;
+}
+
+.record-role,
+.record-notes {
+  margin: 0;
+  color: #595246;
+  line-height: 1.45;
+}
+
+.record-card dl {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 8px 12px;
+  margin: 0;
+}
+
+.record-card dt {
+  color: #8a4f16;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.record-card dd {
+  margin: 0;
+  color: #312d26;
+}
+
 @media (max-width: 840px) {
   .workflow {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .upload-panel,
+  .record-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -127,5 +256,13 @@ h1 {
 
   .workflow article {
     min-height: 0;
+  }
+
+  .preview-heading {
+    display: block;
+  }
+
+  .record-card dl {
+    grid-template-columns: 1fr;
   }
 }
