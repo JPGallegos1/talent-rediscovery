@@ -3,6 +3,9 @@ import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tan
 import { createContext, useContext, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { createRoot } from "react-dom/client";
 import { parseCsvTalentPool, type CandidateRecord } from "./csv-candidate-records.js";
+import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "./message-draft.js";
+import { interpretSearchCriteria, type SearchCriteria } from "./search-criteria.js";
+import { buildShortlist, type Match } from "./shortlist-matches.js";
 import "./styles.css";
 
 type AppSession = {
@@ -10,8 +13,8 @@ type AppSession = {
   candidateRecordCount: number;
   candidateRecords: CandidateRecord[];
   searchRequest: string;
-  searchCriteria: string[];
-  shortlistCount: number;
+  searchCriteria: SearchCriteria | null;
+  shortlist: Match[];
   selectedMatchId: string | null;
   copilotTranscript: { speaker: "recruiter" | "copilot"; text: string }[];
 };
@@ -26,8 +29,8 @@ const initialSession: AppSession = {
   candidateRecordCount: 0,
   candidateRecords: [],
   searchRequest: "",
-  searchCriteria: [],
-  shortlistCount: 0,
+  searchCriteria: null,
+  shortlist: [],
   selectedMatchId: null,
   copilotTranscript: [
     {
@@ -96,7 +99,38 @@ function NavLink({ to, label }: { to: "/" | "/talent-pool"; label: string }) {
 }
 
 function HomeRoute() {
-  const { session } = useAppSession();
+  const { session, setSession } = useAppSession();
+  const [draftSearchRequest, setDraftSearchRequest] = useState(session.searchRequest);
+  const [searchStatus, setSearchStatus] = useState("Load a Talent Pool File before running a Search Request.");
+  const hasTalentPool = session.candidateRecordCount > 0;
+
+  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!hasTalentPool) {
+      setSearchStatus("Upload a Talent Pool File before running a Search Request.");
+      return;
+    }
+
+    const searchRequest = draftSearchRequest.trim();
+
+    if (!searchRequest) {
+      setSearchStatus("Enter a Search Request before running the search.");
+      return;
+    }
+
+    const searchCriteria = interpretSearchCriteria(searchRequest);
+    const shortlist = buildShortlist(session.candidateRecords, searchCriteria);
+
+    setSession((current) => ({
+      ...current,
+      searchRequest,
+      searchCriteria,
+      shortlist,
+      selectedMatchId: null,
+    }));
+    setSearchStatus(`Search Request run. Returned ${shortlist.length} Matches in an ephemeral Shortlist.`);
+  }
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -114,23 +148,48 @@ function HomeRoute() {
         <section className="grid gap-4 md:grid-cols-3">
           <MetricCard label="Talent Pool" value={session.talentPoolFileName ?? "Not loaded"} />
           <MetricCard label="Candidate Records" value={String(session.candidateRecordCount)} />
-          <MetricCard label="Matches returned" value={String(session.shortlistCount)} />
+          <MetricCard label="Matches returned" value={String(session.shortlist.length)} />
         </section>
 
         <section className="rounded-2xl border border-outline-soft bg-surface-lowest p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-earth">Search Request</p>
-          <h2 className="mt-2 font-serif text-2xl font-semibold text-slate">Ready when Candidate Records exist</h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
-            The Copilot can draft recruiter intent, but Talent Rediscovery should only run a Search Request after an explicit recruiter action.
-          </p>
-          <div className="mt-5 rounded-xl border border-dashed border-outline-soft bg-surface-low p-4 text-sm leading-6 text-muted">
-            No Search Request has been run in this in-memory session.
-          </div>
+          <form className="space-y-5" onSubmit={handleSearchSubmit}>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-earth">Search Request</p>
+              <h2 className="mt-2 font-serif text-2xl font-semibold text-slate">Run a Search Request explicitly</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted">
+                The Copilot can draft recruiter intent, but Talent Rediscovery should only run a Search Request after an explicit recruiter action.
+              </p>
+            </div>
+            <label className="grid gap-2 text-sm font-semibold text-slate" htmlFor="search-request">
+              Search Request
+              <textarea
+                id="search-request"
+                className="min-h-32 rounded-xl border border-outline-soft bg-surface-lowest p-4 text-base font-normal leading-7 text-ink outline-none transition focus:border-slate"
+                placeholder="Example: Senior React profiles with fintech experience, good English, remote Colombia"
+                value={draftSearchRequest}
+                onChange={(event) => setDraftSearchRequest(event.target.value)}
+              />
+            </label>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm leading-6 text-muted" aria-live="polite">
+                {searchStatus}
+              </p>
+              {hasTalentPool ? (
+                <button type="submit" className="rounded-lg bg-slate px-4 py-3 text-sm font-semibold text-white hover:bg-slate-strong">
+                  Run Search Request
+                </button>
+              ) : (
+                <Link to="/talent-pool" className="rounded-lg bg-slate px-4 py-3 text-sm font-semibold text-white hover:bg-slate-strong">
+                  Load Talent Pool File
+                </Link>
+              )}
+            </div>
+          </form>
         </section>
 
         <section className="grid gap-6 lg:grid-cols-2">
-          <InfoPanel title="Interpreted Search Criteria" emptyText="Search Criteria will appear here as read-only information after a Search Request runs." />
-          <InfoPanel title="Current Shortlist" emptyText="No Matches yet. Load a Talent Pool File and explicitly run a Search Request." />
+          <InfoPanel title="Interpreted Search Criteria" emptyText="Search Criteria will appear here as read-only information after a Search Request runs." items={formatSearchCriteria(session.searchCriteria)} />
+          <ShortlistPanel matches={session.shortlist} />
         </section>
       </section>
 
@@ -168,8 +227,8 @@ function TalentPoolRoute() {
         candidateRecordCount: parsed.candidateRecords.length,
         candidateRecords: parsed.candidateRecords,
         searchRequest: "",
-        searchCriteria: [],
-        shortlistCount: 0,
+        searchCriteria: null,
+        shortlist: [],
         selectedMatchId: null,
       }));
       setUploadStatus(`Parsed ${parsed.candidateRecords.length} Candidate Records from ${file.name}.`);
@@ -181,8 +240,8 @@ function TalentPoolRoute() {
         candidateRecordCount: 0,
         candidateRecords: [],
         searchRequest: "",
-        searchCriteria: [],
-        shortlistCount: 0,
+        searchCriteria: null,
+        shortlist: [],
         selectedMatchId: null,
       }));
       setUploadStatus(error instanceof Error ? error.message : "The Talent Pool File could not be parsed.");
@@ -314,6 +373,81 @@ function getDuplicateWarning(record: CandidateRecord, records: CandidateRecord[]
 }
 
 function MatchDetailRoute() {
+  const { matchId } = matchRoute.useParams();
+  const { session } = useAppSession();
+  const [draftText, setDraftText] = useState("");
+  const [draftStatus, setDraftStatus] = useState("Talent Rediscovery never sends outreach automatically.");
+  const match = session.shortlist.find((candidateMatch) => getMatchId(candidateMatch) === matchId);
+
+  if (match) {
+    const isDraftable = canDraftMessageFromSuggestedNextAction(match.suggestedNextAction);
+
+    function handleCreateDraft() {
+      if (!match) {
+        return;
+      }
+
+      try {
+        setDraftText(draftMessageFromMatch({ ...match, searchRequest: session.searchRequest }));
+        setDraftStatus("Editable draft created for recruiter review. It has not been sent.");
+      } catch (error) {
+        setDraftStatus(error instanceof Error ? error.message : "The editable draft could not be created.");
+      }
+    }
+
+    return (
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <article className="rounded-2xl border border-outline-soft bg-surface-lowest p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-earth">Session-scoped Match detail</p>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="font-serif text-4xl font-semibold text-slate">{getCandidateRecordLabel(match)}</h1>
+              <p className="mt-2 text-muted">{match.candidateRecord.canonicalFields.currentRole || "Role not provided"}</p>
+            </div>
+            <span className="rounded-full bg-slate px-4 py-2 text-sm font-semibold text-white">{match.strength}</span>
+          </div>
+          <DetailSection title="Reasons" items={match.reasons} />
+          <DetailSection title="Candidate Record evidence" items={match.evidence.map((item) => `${item.label}: ${item.value} (${item.matched})`)} />
+          <DetailSection title="Gaps" items={match.gaps} />
+          <section className="mt-8 rounded-2xl border border-outline-soft bg-surface-low p-6">
+            <h2 className="font-serif text-xl font-semibold text-slate">Create editable draft</h2>
+            <p className="mt-3 text-sm leading-6 text-muted">
+              Available when the Suggested Next Action is contact or recontact-oriented. Talent Rediscovery never sends outreach automatically.
+            </p>
+            <button
+              type="button"
+              className="mt-4 rounded-lg bg-slate px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-outline-soft"
+              disabled={!isDraftable}
+              onClick={handleCreateDraft}
+            >
+              Create editable draft
+            </button>
+            <p className="mt-3 text-sm leading-6 text-muted" aria-live="polite">
+              {isDraftable ? draftStatus : "Editable drafts are unavailable unless the Suggested Next Action is to contact or recontact."}
+            </p>
+            {draftText ? (
+              <label className="mt-4 grid gap-2 text-sm font-semibold text-slate" htmlFor="message-draft">
+                Editable message draft
+                <textarea
+                  id="message-draft"
+                  className="min-h-48 rounded-xl border border-outline-soft bg-surface-lowest p-4 text-sm font-normal leading-6 text-ink outline-none focus:border-slate"
+                  value={draftText}
+                  onChange={(event) => setDraftText(event.target.value)}
+                />
+              </label>
+            ) : null}
+          </section>
+        </article>
+
+        <aside className="rounded-2xl border border-outline-soft bg-surface-low p-6">
+          <h2 className="font-serif text-xl font-semibold text-slate">Suggested Next Action</h2>
+          <p className="mt-3 text-sm leading-6 text-muted">{match.suggestedNextAction}</p>
+          <DetailSection title="Risks" items={match.risks} compact />
+        </aside>
+      </section>
+    );
+  }
+
   return (
     <section className="rounded-2xl border border-outline-soft bg-surface-lowest p-8">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-earth">Session-scoped Match detail</p>
@@ -337,13 +471,105 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function InfoPanel({ title, emptyText }: { title: string; emptyText: string }) {
+function InfoPanel({ title, emptyText, items = [] }: { title: string; emptyText: string; items?: string[] }) {
   return (
     <section className="rounded-2xl border border-outline-soft bg-surface-lowest p-6">
       <h2 className="font-serif text-2xl font-semibold text-slate">{title}</h2>
-      <p className="mt-4 rounded-lg bg-surface-low px-3 py-3 text-sm leading-6 text-muted">{emptyText}</p>
+      {items.length > 0 ? (
+        <ul className="mt-4 space-y-3 text-sm leading-6 text-muted">
+          {items.map((item) => (
+            <li key={item} className="rounded-lg bg-surface-low px-3 py-2">
+              {item}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 rounded-lg bg-surface-low px-3 py-3 text-sm leading-6 text-muted">{emptyText}</p>
+      )}
     </section>
   );
+}
+
+function ShortlistPanel({ matches }: { matches: Match[] }) {
+  return (
+    <section className="rounded-2xl border border-outline-soft bg-surface-lowest p-6">
+      <h2 className="font-serif text-2xl font-semibold text-slate">Current Shortlist</h2>
+      {matches.length > 0 ? (
+        <div className="mt-4 space-y-4">
+          {matches.map((match, index) => (
+            <article key={getMatchId(match)} className="rounded-xl border border-outline-soft bg-surface-low p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-earth">Match {index + 1}</p>
+                  <h3 className="mt-2 font-serif text-xl font-semibold text-slate">{getCandidateRecordLabel(match)}</h3>
+                  <p className="mt-1 text-sm text-muted">{match.candidateRecord.canonicalFields.currentRole || "Role not provided"}</p>
+                </div>
+                <span className="rounded-full bg-slate px-3 py-1 text-xs font-semibold text-white">{match.strength}</span>
+              </div>
+              <p className="mt-3 text-sm leading-6 text-muted">{match.suggestedNextAction}</p>
+              <div className="mt-3 grid gap-3 text-sm leading-6 text-muted sm:grid-cols-2">
+                <SummaryList title="Reasons" items={match.reasons.slice(0, 2)} />
+                <SummaryList title="Evidence" items={match.evidence.slice(0, 2).map((item) => `${item.label}: ${item.value}`)} />
+              </div>
+              <Link to="/matches/$matchId" params={{ matchId: getMatchId(match) }} className="mt-4 inline-flex text-sm font-semibold text-slate hover:text-earth">
+                Open Match detail
+              </Link>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 rounded-lg bg-surface-low px-3 py-3 text-sm leading-6 text-muted">No Matches yet. Load a Talent Pool File and explicitly run a Search Request.</p>
+      )}
+    </section>
+  );
+}
+
+function SummaryList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <h4 className="font-semibold text-slate">{title}</h4>
+      <ul className="mt-1 list-disc space-y-1 pl-5">
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DetailSection({ title, items, compact = false }: { title: string; items: string[]; compact?: boolean }) {
+  return (
+    <section className={compact ? "mt-6" : "mt-8"}>
+      <h2 className="font-serif text-xl font-semibold text-slate">{title}</h2>
+      <ul className="mt-3 space-y-2 text-sm leading-6 text-muted">
+        {items.map((item) => (
+          <li key={item} className="rounded-lg bg-surface-low px-3 py-2">
+            {item}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function formatSearchCriteria(searchCriteria: SearchCriteria | null) {
+  if (!searchCriteria || Object.keys(searchCriteria).length === 0) {
+    return [];
+  }
+
+  return Object.entries(searchCriteria).map(([key, value]) => `${formatCriteriaLabel(key)}: ${Array.isArray(value) ? value.join(", ") : value}`);
+}
+
+function formatCriteriaLabel(key: string) {
+  return key.replaceAll(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
+}
+
+function getMatchId(match: Match) {
+  return `row-${match.candidateRecord.rowNumber}`;
+}
+
+function getCandidateRecordLabel(match: Match) {
+  return match.candidateRecord.canonicalFields.name || `Candidate Record ${match.candidateRecord.rowNumber}`;
 }
 
 function CopilotPanel() {
