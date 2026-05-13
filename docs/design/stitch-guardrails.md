@@ -6,17 +6,29 @@ Lightweight guardrails so future agents and contributors preserve the Stitch-bas
 
 ## 1. Route Fidelity Expectations
 
-### `/` Home Cockpit
+### `/` Home — Empty State (first-time user, no Candidate Records)
 
 | Expectation | Enforcement |
 |---|---|
-| Layout follows Stitch cockpit: main workspace area left, Copilot panel right (380px) | Visual review |
+| Layout follows Stitch `home/` design: centered hero left canvas + Copilot panel right (380px) | Visual review |
+| Hero shows `database_off` icon, "Your Talent Pool is Empty" heading, and description | Must not show SearchRequestForm or workspace UI |
+| Upload CTA links to `/talent-pool` with prominent button + privacy note | Must not auto-upload |
+| Steps bento grid (3 cards) visible for product education | Visual review |
+| Copilot panel shows "Waiting for data" status + welcome message bubble | "Copilot requires a Talent Pool to function" footer |
+| Copilot composer disabled with "Upload data to start chatting..." placeholder | Must not accept input |
+| `SearchRequestForm` (textarea + submit) must NOT appear | Prohibited in empty state |
+
+### `/` Home — Active Workspace (Candidate Records loaded)
+
+| Expectation | Enforcement |
+|---|---|
+| Layout follows Stitch `copilot_cockpit_talent_rediscovery/`: workspace left + Copilot panel right (380px) | Visual review |
 | Search Request execution is explicit via textarea + submit button | Must not auto-run on chat |
 | Interpreted Search Criteria shown read-only with Primary Intent + Extracted Criteria chips | No inline editing |
 | Shortlist Match cards show qualitative label only (Strong / Possible / Weak) | Must not reintroduce percentage scores |
 | Match cards separate Evidence, Gaps/Risks, and Suggested Next Action into distinct areas | Visual review |
 | Copilot panel uses chat bubble treatment with composer textarea (disabled until Chat Copilot is implemented) | Disabled affordances only |
-| Empty state guides to load Talent Pool + run Search Request | Must not claim Matches without Candidate Records |
+| Empty Shortlist state guides to run a Search Request | Must not claim Matches without explicit execution |
 
 ### `/talent-pool` Talent Pool
 
