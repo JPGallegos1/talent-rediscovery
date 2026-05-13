@@ -1,6 +1,7 @@
 import { parseCsvTalentPool } from "./csv-candidate-records.js";
 import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "./message-draft.js";
 import { interpretSearchCriteria } from "./search-criteria.js";
+import { buildShortlist } from "./shortlist-matches.js";
 
 const shell = document.querySelector("[data-prototype-shell]");
 const fileInput = document.querySelector("[data-talent-pool-file]");
@@ -15,15 +16,12 @@ const searchStatus = document.querySelector("[data-search-status]");
 const submittedSearch = document.querySelector("[data-submitted-search]");
 const submittedSearchRequest = document.querySelector("[data-submitted-search-request]");
 const searchCriteria = document.querySelector("[data-search-criteria]");
-const messageDraftPanel = document.querySelector("[data-message-draft-panel]");
-const messageDraftButton = document.querySelector("[data-message-draft-button]");
-const messageDraftTextarea = document.querySelector("[data-message-draft]");
-const messageDraftStatus = document.querySelector("[data-message-draft-status]");
-const suggestedNextAction = document.querySelector("[data-suggested-next-action]");
+const shortlistPanel = document.querySelector("[data-shortlist-panel]");
+const shortlistCount = document.querySelector("[data-shortlist-count]");
+const shortlistGrid = document.querySelector("[data-shortlist-grid]");
 
 let talentPool = null;
 let currentSearchRequest = "";
-let draftableMatch = null;
 
 if (shell) {
   shell.dataset.ready = "true";
@@ -73,24 +71,12 @@ searchForm?.addEventListener("submit", (event) => {
   }
 
   currentSearchRequest = searchRequest;
-  renderSubmittedSearch(searchRequest, interpretSearchCriteria(searchRequest));
-  renderMessageDraftHook();
-  setSearchStatus("Search Request submitted. Matching and Shortlist generation are out of scope for this slice.");
-});
+  const criteria = interpretSearchCriteria(searchRequest);
+  const shortlist = buildShortlist(talentPool.candidateRecords, criteria);
 
-messageDraftButton?.addEventListener("click", () => {
-  if (!draftableMatch || !messageDraftTextarea) {
-    return;
-  }
-
-  try {
-    messageDraftTextarea.value = draftMessageFromMatch(draftableMatch);
-    messageDraftTextarea.removeAttribute("hidden");
-    setMessageDraftStatus("Draft created for recruiter review. It has not been sent and can be edited before use.");
-    messageDraftTextarea.focus();
-  } catch (error) {
-    setMessageDraftStatus(error instanceof Error ? error.message : "The message draft could not be created.", true);
-  }
+  renderSubmittedSearch(searchRequest, criteria);
+  renderShortlist(shortlist);
+  setSearchStatus(`Search Request submitted. Returned ${shortlist.length} ranked Matches in an ephemeral Shortlist.`);
 });
 
 function isCsvFile(file) {
@@ -159,7 +145,6 @@ function formatExperience(value) {
 function clearPreview() {
   talentPool = null;
   currentSearchRequest = "";
-  draftableMatch = null;
   previewPanel?.setAttribute("hidden", "");
   recordGrid?.replaceChildren();
   if (recordCount) {
@@ -167,10 +152,10 @@ function clearPreview() {
   }
   submittedSearch?.setAttribute("hidden", "");
   searchCriteria?.replaceChildren();
-  messageDraftPanel?.setAttribute("hidden", "");
-  messageDraftTextarea?.setAttribute("hidden", "");
-  if (messageDraftTextarea) {
-    messageDraftTextarea.value = "";
+  shortlistPanel?.setAttribute("hidden", "");
+  shortlistGrid?.replaceChildren();
+  if (shortlistCount) {
+    shortlistCount.textContent = "";
   }
   updateSearchAvailability();
 }
@@ -229,6 +214,151 @@ function formatCriteriaValue(value) {
   return Array.isArray(value) ? value.join(", ") : value;
 }
 
+function renderShortlist(shortlist) {
+  if (!shortlistPanel || !shortlistCount || !shortlistGrid) {
+    return;
+  }
+
+  shortlistCount.textContent = `${shortlist.length} Matches`;
+  shortlistGrid.replaceChildren(...shortlist.map((match, index) => createMatchCard(match, index + 1, currentSearchRequest)));
+  shortlistPanel.hidden = false;
+}
+
+function createMatchCard(match, rank, searchRequest) {
+  const { canonicalFields } = match.candidateRecord;
+  const card = document.createElement("article");
+  card.className = "match-card";
+
+  const heading = document.createElement("div");
+  heading.className = "match-heading";
+
+  const titleGroup = document.createElement("div");
+
+  const rankLabel = document.createElement("p");
+  rankLabel.className = "match-rank";
+  rankLabel.textContent = `Match ${rank}`;
+
+  const title = document.createElement("h3");
+  title.textContent = canonicalFields.name || `Candidate Record ${match.candidateRecord.rowNumber}`;
+
+  const role = document.createElement("p");
+  role.className = "record-role";
+  role.textContent = canonicalFields.currentRole || "Role not provided";
+
+  const strength = document.createElement("strong");
+  strength.className = "match-strength";
+  strength.textContent = match.strength;
+
+  titleGroup.append(rankLabel, title, role);
+  heading.append(titleGroup, strength);
+
+  const action = document.createElement("p");
+  action.className = "suggested-action";
+  action.textContent = match.suggestedNextAction;
+
+  card.append(
+    heading,
+    action,
+    createListSection("Reasons", match.reasons),
+    createEvidenceSection(match.evidence),
+    createListSection("Assumptions / gaps / missing information", match.gaps, "assumption-section"),
+    createListSection("Risks / validation points", match.risks, "risk-section"),
+    createMessageDraftSection(match, searchRequest),
+  );
+
+  return card;
+}
+
+function createMessageDraftSection(match, searchRequest) {
+  const section = document.createElement("section");
+  section.className = "message-draft-panel";
+
+  const copy = document.createElement("div");
+
+  const title = document.createElement("h4");
+  title.textContent = "Draft from Suggested Next Action";
+
+  const description = document.createElement("p");
+  description.textContent = "Available only for contact or recontact-oriented Matches. Review and edit before using; Talent Rediscovery never sends messages automatically.";
+
+  copy.append(title, description);
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = "Draft message";
+
+  const status = document.createElement("p");
+  status.className = "message-draft-status";
+  status.setAttribute("aria-live", "polite");
+
+  const label = document.createElement("label");
+  label.textContent = "Editable message draft";
+
+  const textarea = document.createElement("textarea");
+  textarea.hidden = true;
+
+  label.append(textarea);
+
+  const isDraftable = canDraftMessageFromSuggestedNextAction(match.suggestedNextAction);
+  button.disabled = !isDraftable;
+  setMessageDraftStatus(
+    status,
+    isDraftable
+      ? "This Suggested Next Action can create an editable draft for recruiter review."
+      : "Message drafts are unavailable unless the Suggested Next Action is to contact or recontact.",
+  );
+
+  button.addEventListener("click", () => {
+    try {
+      textarea.value = draftMessageFromMatch({ ...match, searchRequest });
+      textarea.hidden = false;
+      setMessageDraftStatus(status, "Draft created for recruiter review. It has not been sent and can be edited before use.");
+      textarea.focus();
+    } catch (error) {
+      setMessageDraftStatus(status, error instanceof Error ? error.message : "The message draft could not be created.", true);
+    }
+  });
+
+  section.append(copy, button, status, label);
+  return section;
+}
+
+function createEvidenceSection(evidence) {
+  const section = document.createElement("section");
+  section.className = "match-section evidence-section";
+
+  const title = document.createElement("h4");
+  title.textContent = "Candidate Record evidence";
+
+  const list = document.createElement("dl");
+
+  evidence.forEach((item) => {
+    appendDetail(list, item.label, `${item.value} (${item.matched})`);
+  });
+
+  section.append(title, list);
+  return section;
+}
+
+function createListSection(titleText, items, className = "") {
+  const section = document.createElement("section");
+  section.className = ["match-section", className].filter(Boolean).join(" ");
+
+  const title = document.createElement("h4");
+  title.textContent = titleText;
+
+  const list = document.createElement("ul");
+
+  items.forEach((item) => {
+    const listItem = document.createElement("li");
+    listItem.textContent = item;
+    list.append(listItem);
+  });
+
+  section.append(title, list);
+  return section;
+}
+
 function setSearchStatus(message, isError = false) {
   if (!searchStatus) {
     return;
@@ -238,47 +368,13 @@ function setSearchStatus(message, isError = false) {
   searchStatus.dataset.state = isError ? "error" : "ready";
 }
 
-function renderMessageDraftHook() {
-  if (!messageDraftPanel || !messageDraftButton || !talentPool || !currentSearchRequest) {
+function setMessageDraftStatus(status, message, isError = false) {
+  if (!status) {
     return;
   }
 
-  draftableMatch = createDraftableMatch(talentPool.candidateRecords[0], currentSearchRequest);
-  const isDraftable = canDraftMessageFromSuggestedNextAction(draftableMatch.suggestedNextAction);
-
-  if (suggestedNextAction) {
-    suggestedNextAction.textContent = draftableMatch.suggestedNextAction;
-  }
-
-  messageDraftButton.disabled = !isDraftable;
-  messageDraftPanel.hidden = false;
-  messageDraftTextarea?.setAttribute("hidden", "");
-  if (messageDraftTextarea) {
-    messageDraftTextarea.value = "";
-  }
-
-  setMessageDraftStatus(
-    isDraftable
-      ? "This contact-oriented Suggested Next Action can create an editable draft. Review before using; Talent Rediscovery will not send it."
-      : "Message drafts are unavailable unless the Suggested Next Action is to contact or recontact.",
-  );
-}
-
-function createDraftableMatch(candidateRecord, searchRequest) {
-  return {
-    candidateRecord,
-    searchRequest,
-    suggestedNextAction: "Recontact this Candidate to validate current interest and availability.",
-  };
-}
-
-function setMessageDraftStatus(message, isError = false) {
-  if (!messageDraftStatus) {
-    return;
-  }
-
-  messageDraftStatus.textContent = message;
-  messageDraftStatus.dataset.state = isError ? "error" : "ready";
+  status.textContent = message;
+  status.dataset.state = isError ? "error" : "ready";
 }
 
 updateSearchAvailability();

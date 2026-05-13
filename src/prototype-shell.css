@@ -242,7 +242,8 @@ h1 {
   color: #742b1d;
 }
 
-.submitted-search {
+.submitted-search,
+.shortlist-panel {
   grid-column: 1 / -1;
   display: grid;
   gap: 16px;
@@ -259,6 +260,125 @@ h1 {
   color: #312d26;
   font-size: 1.15rem;
   line-height: 1.5;
+}
+
+.shortlist-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.match-card {
+  display: grid;
+  gap: 16px;
+  border: 1px solid #dfd0b7;
+  border-radius: 22px;
+  background: #fffaf1;
+  padding: 20px;
+}
+
+.match-heading {
+  display: flex;
+  gap: 16px;
+  align-items: start;
+  justify-content: space-between;
+}
+
+.match-rank {
+  margin: 0 0 6px;
+  color: #8a4f16;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.match-card h3,
+.match-section h4 {
+  margin: 0;
+}
+
+.match-strength {
+  border-radius: 999px;
+  background: #1f2d26;
+  color: #fffaf1;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+
+.suggested-action {
+  margin: 0;
+  border-left: 5px solid #f0a735;
+  padding: 12px 14px;
+  background: #ffffff;
+  color: #312d26;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.match-section {
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.evidence-section {
+  border: 1px solid #9bbd97;
+  background: #f4fbf1;
+}
+
+.assumption-section {
+  border: 1px solid #dfd0b7;
+  background: #f6f1e8;
+}
+
+.risk-section {
+  border: 1px solid #e5b3a9;
+  background: #fff5f2;
+}
+
+.match-section h4 {
+  margin-bottom: 10px;
+  color: #8a4f16;
+  font-size: 0.82rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.match-section ul,
+.match-section dl {
+  margin: 0;
+}
+
+.match-section ul {
+  padding-left: 20px;
+}
+
+.match-section li {
+  margin-bottom: 8px;
+  color: #312d26;
+  line-height: 1.45;
+}
+
+.match-section li:last-child {
+  margin-bottom: 0;
+}
+
+.match-section dl {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 8px 12px;
+}
+
+.match-section dt {
+  color: #426d3d;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.match-section dd {
+  margin: 0;
+  color: #312d26;
 }
 
 .criteria-panel {
@@ -368,7 +488,7 @@ h1 {
   margin-bottom: 22px;
 }
 
-.preview-heading p:last-child {
+.preview-heading > p:last-child {
   margin: 0;
   border-radius: 999px;
   background: #1f2d26;
@@ -460,6 +580,19 @@ h1 {
   }
 
   .record-card dl {
+    grid-template-columns: 1fr;
+  }
+
+  .match-heading {
+    display: block;
+  }
+
+  .match-strength {
+    display: inline-block;
+    margin-top: 12px;
+  }
+
+  .match-section dl {
     grid-template-columns: 1fr;
   }
 }
