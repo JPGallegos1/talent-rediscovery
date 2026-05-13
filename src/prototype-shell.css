@@ -14,6 +14,10 @@ body {
   min-height: 100vh;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .shell {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
@@ -207,7 +211,8 @@ h1 {
   outline-offset: 2px;
 }
 
-.search-form button {
+.search-form button,
+.message-draft-panel button {
   justify-self: start;
   border: 0;
   border-radius: 999px;
@@ -219,7 +224,8 @@ h1 {
   cursor: pointer;
 }
 
-.search-form button:disabled {
+.search-form button:disabled,
+.message-draft-panel button:disabled {
   background: #c8bdab;
   color: #5d5549;
   cursor: not-allowed;
@@ -410,6 +416,68 @@ h1 {
 
 .empty-criteria {
   grid-column: 1 / -1;
+}
+
+.message-draft-panel {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #dfd0b7;
+  border-radius: 18px;
+  background: #fffaf1;
+  padding: 18px;
+}
+
+.message-draft-panel h3 {
+  margin: 0 0 8px;
+  letter-spacing: -0.03em;
+}
+
+.message-draft-panel p {
+  margin-bottom: 0;
+  color: #595246;
+  line-height: 1.55;
+}
+
+.message-draft-status {
+  border-radius: 16px;
+  background: #eef5ec;
+  padding: 14px 16px;
+}
+
+.message-draft-status[data-state="error"] {
+  background: #f9ded7;
+  color: #742b1d;
+}
+
+.message-draft-panel label {
+  display: grid;
+  gap: 8px;
+  color: #8a4f16;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.message-draft-panel textarea {
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid #d8cbb5;
+  border-radius: 20px;
+  background: #ffffff;
+  padding: 16px;
+  color: #1b1b18;
+  font: inherit;
+  font-weight: 500;
+  letter-spacing: normal;
+  line-height: 1.5;
+  resize: vertical;
+  text-transform: none;
+}
+
+.message-draft-panel textarea:focus {
+  outline: 3px solid rgb(240 167 53 / 35%);
+  outline-offset: 2px;
 }
 
 .preview-heading {

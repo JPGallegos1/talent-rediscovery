@@ -1,4 +1,5 @@
 import { parseCsvTalentPool } from "./csv-candidate-records.js";
+import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "./message-draft.js";
 import { interpretSearchCriteria } from "./search-criteria.js";
 import { buildShortlist } from "./shortlist-matches.js";
 
@@ -20,6 +21,7 @@ const shortlistCount = document.querySelector("[data-shortlist-count]");
 const shortlistGrid = document.querySelector("[data-shortlist-grid]");
 
 let talentPool = null;
+let currentSearchRequest = "";
 
 if (shell) {
   shell.dataset.ready = "true";
@@ -68,6 +70,7 @@ searchForm?.addEventListener("submit", (event) => {
     return;
   }
 
+  currentSearchRequest = searchRequest;
   const criteria = interpretSearchCriteria(searchRequest);
   const shortlist = buildShortlist(talentPool.candidateRecords, criteria);
 
@@ -141,6 +144,7 @@ function formatExperience(value) {
 
 function clearPreview() {
   talentPool = null;
+  currentSearchRequest = "";
   previewPanel?.setAttribute("hidden", "");
   recordGrid?.replaceChildren();
   if (recordCount) {
@@ -216,11 +220,11 @@ function renderShortlist(shortlist) {
   }
 
   shortlistCount.textContent = `${shortlist.length} Matches`;
-  shortlistGrid.replaceChildren(...shortlist.map((match, index) => createMatchCard(match, index + 1)));
+  shortlistGrid.replaceChildren(...shortlist.map((match, index) => createMatchCard(match, index + 1, currentSearchRequest)));
   shortlistPanel.hidden = false;
 }
 
-function createMatchCard(match, rank) {
+function createMatchCard(match, rank, searchRequest) {
   const { canonicalFields } = match.candidateRecord;
   const card = document.createElement("article");
   card.className = "match-card";
@@ -259,9 +263,64 @@ function createMatchCard(match, rank) {
     createEvidenceSection(match.evidence),
     createListSection("Assumptions / gaps / missing information", match.gaps, "assumption-section"),
     createListSection("Risks / validation points", match.risks, "risk-section"),
+    createMessageDraftSection(match, searchRequest),
   );
 
   return card;
+}
+
+function createMessageDraftSection(match, searchRequest) {
+  const section = document.createElement("section");
+  section.className = "message-draft-panel";
+
+  const copy = document.createElement("div");
+
+  const title = document.createElement("h4");
+  title.textContent = "Draft from Suggested Next Action";
+
+  const description = document.createElement("p");
+  description.textContent = "Available only for contact or recontact-oriented Matches. Review and edit before using; Talent Rediscovery never sends messages automatically.";
+
+  copy.append(title, description);
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = "Draft message";
+
+  const status = document.createElement("p");
+  status.className = "message-draft-status";
+  status.setAttribute("aria-live", "polite");
+
+  const label = document.createElement("label");
+  label.textContent = "Editable message draft";
+
+  const textarea = document.createElement("textarea");
+  textarea.hidden = true;
+
+  label.append(textarea);
+
+  const isDraftable = canDraftMessageFromSuggestedNextAction(match.suggestedNextAction);
+  button.disabled = !isDraftable;
+  setMessageDraftStatus(
+    status,
+    isDraftable
+      ? "This Suggested Next Action can create an editable draft for recruiter review."
+      : "Message drafts are unavailable unless the Suggested Next Action is to contact or recontact.",
+  );
+
+  button.addEventListener("click", () => {
+    try {
+      textarea.value = draftMessageFromMatch({ ...match, searchRequest });
+      textarea.hidden = false;
+      setMessageDraftStatus(status, "Draft created for recruiter review. It has not been sent and can be edited before use.");
+      textarea.focus();
+    } catch (error) {
+      setMessageDraftStatus(status, error instanceof Error ? error.message : "The message draft could not be created.", true);
+    }
+  });
+
+  section.append(copy, button, status, label);
+  return section;
 }
 
 function createEvidenceSection(evidence) {
@@ -307,6 +366,15 @@ function setSearchStatus(message, isError = false) {
 
   searchStatus.textContent = message;
   searchStatus.dataset.state = isError ? "error" : "ready";
+}
+
+function setMessageDraftStatus(status, message, isError = false) {
+  if (!status) {
+    return;
+  }
+
+  status.textContent = message;
+  status.dataset.state = isError ? "error" : "ready";
 }
 
 updateSearchAvailability();
