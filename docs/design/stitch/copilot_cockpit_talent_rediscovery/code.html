@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RecruitAI - Copilot</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Noto+Serif:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed": "#0f1e1f",
+                        "surface-container-high": "#eae8e2",
+                        "primary-fixed": "#d5e6e6",
+                        "on-surface-variant": "#424848",
+                        "outline-variant": "#c2c7c7",
+                        "on-secondary-fixed-variant": "#424848",
+                        "surface-variant": "#e4e2dc",
+                        "inverse-primary": "#b9caca",
+                        "surface-bright": "#fbf9f3",
+                        "surface-container-low": "#f6f3ed",
+                        "inverse-surface": "#30312d",
+                        "secondary-container": "#dee4e3",
+                        "tertiary": "#433128",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#f0eee8",
+                        "on-tertiary-container": "#d1b6a9",
+                        "secondary": "#595f60",
+                        "on-tertiary-fixed": "#271810",
+                        "tertiary-fixed": "#faddcf",
+                        "tertiary-container": "#5b473d",
+                        "primary-container": "#3f4e4f",
+                        "on-secondary-container": "#5f6566",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-background": "#1b1c18",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed-variant": "#564339",
+                        "on-primary-fixed-variant": "#3a494a",
+                        "background": "#fbf9f3",
+                        "surface-container-highest": "#e4e2dc",
+                        "primary": "#293738",
+                        "on-secondary-fixed": "#171d1d",
+                        "error-container": "#ffdad6",
+                        "surface": "#fbf9f3",
+                        "inverse-on-surface": "#f3f1eb",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed-dim": "#c2c8c7",
+                        "outline": "#737878",
+                        "on-primary-container": "#aebfc0",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#b9caca",
+                        "on-surface": "#1b1c18",
+                        "secondary-fixed": "#dee4e3",
+                        "surface-dim": "#dcdad4",
+                        "on-secondary": "#ffffff",
+                        "surface-tint": "#526162",
+                        "tertiary-fixed-dim": "#ddc1b4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "stack-md": "24px",
+                        "stack-lg": "48px",
+                        "gutter": "24px",
+                        "stack-sm": "12px",
+                        "container-padding": "32px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Plus Jakarta Sans"],
+                        "headline-xl": ["Noto Serif"],
+                        "headline-md": ["Noto Serif"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "body-sm": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Noto Serif"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "label-md": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Noto Serif"],
+                        "headline-sm": ["Noto Serif"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+                        "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+    </style>
+</head>
+<body class="bg-background text-on-surface h-screen flex overflow-hidden">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col h-full py-gutter px-4 bg-surface-container border-r border-outline-variant/10 fixed left-0 top-0 h-full w-[280px] z-20">
+<div class="mb-stack-lg flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary">
+<span class="font-headline-md text-headline-md font-bold">R</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">RecruitAI</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Talent Rediscovery</p>
+</div>
+</div>
+<button class="w-full bg-primary-container text-on-primary hover:bg-primary-container/90 transition-colors py-2 px-4 rounded font-label-md text-label-md mb-stack-md flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">upload</span>
+            Upload Talent Pool
+        </button>
+<ul class="flex flex-col gap-2 flex-grow">
+<li>
+<a class="flex items-center gap-3 py-2 text-on-surface-variant font-medium pl-4 hover:bg-surface-variant/50 transition-colors duration-200 rounded" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-2 text-on-surface-variant font-medium pl-4 hover:bg-surface-variant/50 transition-colors duration-200 rounded" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-label-md text-label-md">Talent Pool</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-2 text-on-surface-variant font-medium pl-4 hover:bg-surface-variant/50 transition-colors duration-200 rounded" href="#">
+<span class="material-symbols-outlined">verified</span>
+<span class="font-label-md text-label-md">Matches</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 py-2 text-primary font-bold border-l-4 border-tertiary pl-3 bg-surface-variant/30 rounded-r" href="#">
+<span class="material-symbols-outlined fill">psychology</span>
+<span class="font-label-md text-label-md">Copilot</span>
+</a>
+</li>
+</ul>
+<div class="mt-auto">
+<a class="flex items-center gap-3 py-2 text-on-surface-variant font-medium pl-4 hover:bg-surface-variant/50 transition-colors duration-200 rounded" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col ml-0 md:ml-[280px] w-full md:w-[calc(100%-280px)]">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center h-16 px-gutter bg-surface/80 backdrop-blur-md shadow-sm z-10 docked full-width top-0">
+<div class="flex-1 flex items-center">
+<!-- Mobile Menu Button -->
+<button class="md:hidden mr-4 text-on-surface-variant">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="relative w-64 max-w-md hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-outline-variant text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-b border-outline-variant/30 focus:border-primary focus:ring-0 outline-none font-body-sm text-body-sm text-on-surface placeholder:text-outline-variant transition-colors" placeholder="Search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors Focus: ring-2 ring-primary/20 outline-none rounded-full p-1">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors Focus: ring-2 ring-primary/20 outline-none rounded-full p-1">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-tertiary-container overflow-hidden ml-2 border border-outline-variant/20">
+<img alt="User avatar" class="w-full h-full object-cover" data-alt="A small circular avatar placeholder image indicating the user profile area. It has a solid deep earth brown background with white text initials. The style is modern corporate minimalist." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCRQNvob1W4Vv3t6dbOARUQYKnDl5-5bnZuqRL5LC44UsN9KFrwkPL4ER5HOjtHOCDC29sXEkiLSibdGj3icXWlvvS_MLlg_WKuhZidRaD9xhhbrx13qngauLJZ9Vkozd82jme6-y1mis_t5WJhJ6FvxsOIqSzs285qowCec3-UqQE6IyIHlJ_hwBvMNOTaztIByKbYm8Bn4_Ez2aw5SpNAKJscyUMDELIVaf7ObHC0Ne4XixLViCWiWFtvjwnrBhCNhMF5uub-_Md2"/>
+</div>
+</div>
+</header>
+<!-- Copilot Layout -->
+<main class="flex-1 overflow-hidden flex flex-col md:flex-row bg-background">
+<!-- Left Panel: Workspace (Shortlist & Matches) -->
+<div class="flex-1 overflow-y-auto p-gutter custom-scrollbar">
+<div class="mb-stack-md flex justify-between items-end">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-2">Talent Discovery Copilot</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Draft intent, analyze criteria, and uncover hidden matches.</p>
+</div>
+</div>
+<!-- Empty State / Guidance (Hidden initially, shown for context based on prompt) -->
+<!-- <div class="bg-surface-container-lowest p-stack-lg rounded-xl border border-outline-variant/20 shadow-sm flex flex-col items-center justify-center text-center mt-stack-lg">
+                    <span class="material-symbols-outlined text-[48px] text-primary/40 mb-4">folder_open</span>
+                    <h3 class="font-headline-sm text-headline-sm text-on-surface mb-2">No Talent Pool Connected</h3>
+                    <p class="font-body-sm text-body-sm text-on-surface-variant max-w-md mb-6">To begin rediscovery, you need to upload a talent pool or connect a data source.</p>
+                    <button class="bg-primary-container text-on-primary px-6 py-2 rounded font-label-md text-label-md hover:bg-primary-container/90 transition-colors">Upload Data</button>
+                </div> -->
+<!-- Active State Workspace -->
+<div class="space-y-stack-md">
+<!-- Interpreted Search Criteria (Read-only) -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/20 shadow-[0_4px_20px_rgba(63,78,79,0.05)]">
+<div class="flex items-center gap-2 mb-4 pb-4 border-b border-outline-variant/10">
+<span class="material-symbols-outlined text-tertiary">tune</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Active Search Parameters</h3>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div>
+<h4 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-2">Primary Intent</h4>
+<p class="font-body-md text-body-md text-on-surface">"Looking for a Senior Frontend Engineer with strong React experience, ideally with background in FinTech or highly regulated industries. Needs to be comfortable leading small teams."</p>
+</div>
+<div>
+<h4 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider mb-2">Extracted Entities</h4>
+<div class="flex flex-wrap gap-2">
+<span class="px-3 py-1 bg-primary-fixed text-on-primary-fixed rounded font-label-sm text-label-sm border border-primary/10">Role: Sr Frontend Engineer</span>
+<span class="px-3 py-1 bg-surface-container-high text-on-surface rounded font-label-sm text-label-sm border border-outline-variant/20">Skill: React (Required)</span>
+<span class="px-3 py-1 bg-surface-container-high text-on-surface rounded font-label-sm text-label-sm border border-outline-variant/20">Industry: FinTech / Regulated</span>
+<span class="px-3 py-1 bg-surface-container-high text-on-surface rounded font-label-sm text-label-sm border border-outline-variant/20">Exp: Leadership / Small Teams</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Shortlist Matches -->
+<div>
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-headline-md text-headline-md text-on-surface">Ranked Shortlist</h3>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-high px-2 py-1 rounded">3 Matches Found</span>
+</div>
+<div class="space-y-4">
+<!-- Candidate Card 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/20 shadow-[0_4px_20px_rgba(63,78,79,0.05)] hover:shadow-md transition-shadow cursor-pointer relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-tertiary"></div>
+<div class="flex justify-between items-start mb-4">
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-1">Sarah Jenkins</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Lead UI Engineer · Previous: Stripe, Block</p>
+</div>
+<div class="flex items-center gap-1 bg-[#e8f5e9] text-[#2e7d32] px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="font-label-md text-label-md">92% Match</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 pt-4 border-t border-outline-variant/10">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-2">Evidence (Strengths)</p>
+<ul class="font-body-sm text-body-sm text-on-surface space-y-1 list-disc list-inside">
+<li>7+ years React experience</li>
+<li>FinTech background confirmed</li>
+</ul>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-2">Considerations</p>
+<ul class="font-body-sm text-body-sm text-on-surface-variant space-y-1 list-disc list-inside">
+<li>Hasn't formally held "Manager" title</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- Candidate Card 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/20 shadow-[0_4px_20px_rgba(63,78,79,0.05)] hover:shadow-md transition-shadow cursor-pointer">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface mb-1">David Chen</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Senior Frontend Developer · Previous: Capital One</p>
+</div>
+<div class="flex items-center gap-1 bg-[#e8f5e9] text-[#2e7d32] px-2 py-1 rounded">
+<span class="material-symbols-outlined text-[14px]">check_circle</span>
+<span class="font-label-md text-label-md">88% Match</span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 pt-4 border-t border-outline-variant/10">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-2">Evidence (Strengths)</p>
+<ul class="font-body-sm text-body-sm text-on-surface space-y-1 list-disc list-inside">
+<li>Strong React &amp; TypeScript</li>
+<li>Mentored 3 junior devs</li>
+</ul>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase mb-2">Considerations</p>
+<ul class="font-body-sm text-body-sm text-on-surface-variant space-y-1 list-disc list-inside flex items-center gap-1 text-[#c62828]">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+<li>Short tenure at current role (8 mo)</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Panel: Voice/Chat Copilot -->
+<div class="w-full md:w-[380px] bg-surface-container-low border-l border-outline-variant/20 flex flex-col h-full shadow-[-4px_0_24px_rgba(63,78,79,0.03)] z-10">
+<!-- Copilot Header -->
+<div class="p-4 border-b border-outline-variant/10 bg-surface/50 backdrop-blur flex justify-between items-center">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined">psychology</span>
+<h3 class="font-headline-sm text-headline-sm font-semibold">Discovery Copilot</h3>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1">
+<span class="material-symbols-outlined text-[20px]">more_vert</span>
+</button>
+</div>
+<!-- Chat History -->
+<div class="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+<div class="flex flex-col gap-1 items-start max-w-[85%]">
+<span class="font-label-sm text-label-sm text-on-surface-variant ml-1">Copilot</span>
+<div class="bg-surface-container-lowest p-3 rounded-2xl rounded-tl-sm border border-outline-variant/10 shadow-sm font-body-sm text-body-sm text-on-surface">
+                            Hello. I'm ready to help you rediscover talent. You can type a search request or use voice to describe the role you are looking to fill.
+                        </div>
+</div>
+<div class="flex flex-col gap-1 items-end self-end max-w-[85%] ml-auto">
+<span class="font-label-sm text-label-sm text-on-surface-variant mr-1">You</span>
+<div class="bg-primary-container text-on-primary p-3 rounded-2xl rounded-tr-sm shadow-sm font-body-sm text-body-sm">
+                            I need a Senior Frontend Engineer with strong React experience, ideally with background in FinTech or highly regulated industries. Needs to be comfortable leading small teams.
+                        </div>
+</div>
+<div class="flex flex-col gap-1 items-start max-w-[85%]">
+<span class="font-label-sm text-label-sm text-on-surface-variant ml-1">Copilot</span>
+<div class="bg-surface-container-lowest p-3 rounded-2xl rounded-tl-sm border border-outline-variant/10 shadow-sm font-body-sm text-body-sm text-on-surface">
+                            Got it. I've extracted the key requirements: React, FinTech/Regulated background, and leadership capability. Running the search against your talent pool now.
+                        </div>
+</div>
+<div class="flex flex-col gap-1 items-start max-w-[85%]">
+<span class="font-label-sm text-label-sm text-on-surface-variant ml-1">System</span>
+<div class="bg-secondary-container/30 p-3 rounded-lg border border-secondary/10 font-body-sm text-body-sm text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+                            Search executed. 3 candidates added to shortlist.
+                        </div>
+</div>
+</div>
+<!-- Input Area -->
+<div class="p-4 bg-surface border-t border-outline-variant/10">
+<div class="relative flex items-center bg-surface-container-lowest border border-outline-variant/30 rounded-xl shadow-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/20 transition-all">
+<textarea class="w-full bg-transparent border-none focus:ring-0 resize-none py-3 pl-4 pr-12 font-body-sm text-body-sm text-on-surface placeholder:text-outline-variant custom-scrollbar" placeholder="Draft a new search intent..." rows="2"></textarea>
+<div class="absolute right-2 bottom-2 flex items-center gap-1">
+<button class="w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-variant hover:text-primary transition-colors" title="Use Voice">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-full bg-tertiary text-on-tertiary hover:bg-tertiary/90 transition-colors shadow-sm" title="Run Search">
+<span class="material-symbols-outlined text-[18px]">send</span>
+</button>
+</div>
+</div>
+<div class="mt-2 flex justify-between items-center px-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Press Enter to send, Shift+Enter for new line</span>
+</div>
+</div>
+</div>
+</main>
+</div>
+<style>
+        /* Custom subtle scrollbar for content areas */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: rgba(194, 199, 199, 0.4);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(115, 120, 120, 0.6);
+        }
+    </style>
+</body></html>

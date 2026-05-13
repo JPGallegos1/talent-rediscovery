@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RecruitAI - Talent Pool</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;family=Noto+Serif:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed": "#0f1e1f",
+                        "surface-container-high": "#eae8e2",
+                        "primary-fixed": "#d5e6e6",
+                        "on-surface-variant": "#424848",
+                        "outline-variant": "#c2c7c7",
+                        "on-secondary-fixed-variant": "#424848",
+                        "surface-variant": "#e4e2dc",
+                        "inverse-primary": "#b9caca",
+                        "surface-bright": "#fbf9f3",
+                        "surface-container-low": "#f6f3ed",
+                        "inverse-surface": "#30312d",
+                        "secondary-container": "#dee4e3",
+                        "tertiary": "#433128",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#f0eee8",
+                        "on-tertiary-container": "#d1b6a9",
+                        "secondary": "#595f60",
+                        "on-tertiary-fixed": "#271810",
+                        "tertiary-fixed": "#faddcf",
+                        "tertiary-container": "#5b473d",
+                        "primary-container": "#3f4e4f",
+                        "on-secondary-container": "#5f6566",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error": "#ffffff",
+                        "on-background": "#1b1c18",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed-variant": "#564339",
+                        "on-primary-fixed-variant": "#3a494a",
+                        "background": "#fbf9f3",
+                        "surface-container-highest": "#e4e2dc",
+                        "primary": "#293738",
+                        "on-secondary-fixed": "#171d1d",
+                        "error-container": "#ffdad6",
+                        "surface": "#fbf9f3",
+                        "inverse-on-surface": "#f3f1eb",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed-dim": "#c2c8c7",
+                        "outline": "#737878",
+                        "on-primary-container": "#aebfc0",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#b9caca",
+                        "on-surface": "#1b1c18",
+                        "secondary-fixed": "#dee4e3",
+                        "surface-dim": "#dcdad4",
+                        "on-secondary": "#ffffff",
+                        "surface-tint": "#526162",
+                        "tertiary-fixed-dim": "#ddc1b4"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "stack-md": "24px",
+                        "stack-lg": "48px",
+                        "gutter": "24px",
+                        "stack-sm": "12px",
+                        "container-padding": "32px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Plus Jakarta Sans"],
+                        "headline-xl": ["Noto Serif"],
+                        "headline-md": ["Noto Serif"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "body-sm": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Noto Serif"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "label-md": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Noto Serif"],
+                        "headline-sm": ["Noto Serif"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
+                        "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fbf9f3; color: #1b1c18; }
+        .font-noto { font-family: 'Noto Serif', serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex h-screen overflow-hidden">
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-full w-[280px] bg-surface-container border-r border-outline-variant/10 flex flex-col py-gutter px-4 z-20">
+<div class="mb-stack-lg px-4">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">RecruitAI</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Talent Rediscovery</p>
+</div>
+<div class="flex-1 flex flex-col gap-2">
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-on-surface-variant font-medium hover:bg-surface-variant/50 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-primary font-bold border-l-4 border-tertiary pl-3 bg-surface-variant/20 hover:bg-surface-variant/50 transition-colors duration-200 opacity-80 scale-95 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-label-md text-label-md">Talent Pool</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-on-surface-variant font-medium hover:bg-surface-variant/50 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">verified</span>
+<span class="font-label-md text-label-md">Matches</span>
+</a>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-on-surface-variant font-medium hover:bg-surface-variant/50 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">psychology</span>
+<span class="font-label-md text-label-md">Copilot</span>
+</a>
+</div>
+<div class="mt-auto pt-4 border-t border-outline-variant/10 flex flex-col gap-4">
+<button class="w-full py-3 px-4 bg-primary-container text-on-primary rounded-lg font-label-md text-label-md font-bold hover:bg-primary-container/90 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">upload</span>
+                Upload Talent Pool
+            </button>
+<a class="flex items-center gap-3 py-3 px-4 rounded-lg text-on-surface-variant font-medium hover:bg-surface-variant/50 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col ml-[280px] h-full overflow-hidden bg-background">
+<!-- TopAppBar -->
+<header class="docked full-width top-0 bg-surface/80 backdrop-blur-md border-b border-outline-variant/10 shadow-sm flex justify-between items-center h-16 px-gutter z-10">
+<div class="flex-1 flex items-center">
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-high border-none rounded-full font-body-sm text-body-sm text-on-surface focus:ring-2 focus:ring-primary/20 outline-none transition-shadow" placeholder="Search talent pool..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-variant/50">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-variant/50">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-primary-container overflow-hidden border border-outline-variant/20 ml-2">
+<img alt="User avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a person looking forward, used as a user profile avatar. Clean white background, modern corporate style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9kD4aIWW29nPHH5KKf2ULTa47FkXMHGjFJT7FtcKti70iHRNI5sZQi6pr_dxrwjUdHawE8Mro6pVwiD1QmromiOQP0TdPTSNmYyPIX_Tj4Oc3TWR-6j0ZGLnkXkz2vwsCOtJkAc_SzDQEaTTzDQ7a7M_63hhNsTp_9_yFG0onmWzSZI3mLk605zvy2XKb5FCzxxBzjLnZ2hXOcmdCS7aT8fz9cKrnhDHHAI7j9NNmQrqS_jtPoZHZb7fE2aRsHe33PmcICrkkLDug"/>
+</div>
+</div>
+</header>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto p-container-padding">
+<div class="max-w-[1400px] mx-auto">
+<header class="mb-stack-lg">
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-2">Talent Pool Management</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Upload, view, and manage your structured candidate data.</p>
+</header>
+<!-- File Upload Dropzone -->
+<section class="mb-stack-lg bg-surface-container-lowest rounded-xl border border-dashed border-outline-variant p-8 flex flex-col items-center justify-center text-center transition-colors hover:bg-surface-container-low cursor-pointer">
+<div class="w-16 h-16 rounded-full bg-secondary-container flex items-center justify-center mb-4 text-on-secondary-container">
+<span class="material-symbols-outlined text-3xl">cloud_upload</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-2">Upload CSV Talent Pool File</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-md mx-auto mb-6">Drag and drop your candidate data file here, or click to browse. Ensure columns align with standard formatting for optimal parsing.</p>
+<button class="px-6 py-2 bg-primary-container text-on-primary rounded-lg font-label-md text-label-md hover:bg-primary-container/90 transition-colors">
+                        Select File
+                    </button>
+</section>
+<!-- Data Table Section -->
+<section class="bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_rgba(63,78,79,0.05)] border border-outline-variant/10 overflow-hidden flex flex-col">
+<div class="p-6 border-b border-outline-variant/10 flex justify-between items-center bg-surface">
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Candidate Records</h3>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-4 py-2 border border-outline rounded-lg text-on-surface font-label-sm text-label-sm hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[16px]">filter_list</span>
+                                Filter
+                            </button>
+<button class="flex items-center gap-2 px-4 py-2 border border-outline rounded-lg text-on-surface font-label-sm text-label-sm hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[16px]">download</span>
+                                Export
+                            </button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant/20">
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Name</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Current Role</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Location</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Exp. (Yrs)</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Skills (Top)</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Status/Warnings</th>
+<th class="py-3 px-4 font-label-md text-label-md text-on-surface-variant whitespace-nowrap">Source</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/10 bg-surface-container-lowest">
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface font-medium">Sarah Jenkins</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">Senior Product Designer</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">San Francisco, CA</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">8</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">
+<div class="flex gap-1 flex-wrap">
+<span class="px-2 py-1 bg-surface-variant text-on-surface-variant rounded text-[10px] font-medium">Figma</span>
+<span class="px-2 py-1 bg-surface-variant text-on-surface-variant rounded text-[10px] font-medium">UX Research</span>
+</div>
+</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">
+<span class="inline-flex items-center gap-1 px-2 py-1 bg-primary-fixed/20 text-on-primary-fixed rounded-full text-[10px] font-semibold">
+<span class="material-symbols-outlined text-[12px]">check_circle</span> Validated
+                                        </span>
+</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant text-primary underline cursor-pointer hover:text-primary-container">Greenhouse API</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors">
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface font-medium flex items-center gap-2">
+                                        Michael Chang
+                                        <span class="material-symbols-outlined text-[14px] text-error" title="Duplicate Warning">warning</span>
+</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">Backend Engineer</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">New York, NY</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">5</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">
+<div class="flex gap-1 flex-wrap">
+<span class="px-2 py-1 bg-surface-variant text-on-surface-variant rounded text-[10px] font-medium">Python</span>
+<span class="px-2 py-1 bg-surface-variant text-on-surface-variant rounded text-[10px] font-medium">AWS</span>
+</div>
+</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">
+<span class="inline-flex items-center gap-1 px-2 py-1 bg-error-container text-on-error-container rounded-full text-[10px] font-semibold">
+<span class="material-symbols-outlined text-[12px]">error</span> Duplicate Suspected
+                                        </span>
+</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant text-primary underline cursor-pointer hover:text-primary-container">CSV Upload (Oct 12)</td>
+</tr>
+<tr class="hover:bg-surface-container-low/50 transition-colors bg-surface-container-low/20">
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface font-medium text-on-surface-variant/70 italic">Unknown Candidate</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">Marketing Manager</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">London, UK</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">-</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">
+<div class="flex gap-1 flex-wrap">
+<span class="px-2 py-1 bg-surface-variant text-on-surface-variant rounded text-[10px] font-medium">SEO</span>
+</div>
+</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant">
+<span class="inline-flex items-center gap-1 px-2 py-1 bg-surface-variant text-on-surface-variant rounded-full text-[10px] font-semibold">
+<span class="material-symbols-outlined text-[12px]">sync_problem</span> Normalization Gap
+                                        </span>
+</td>
+<td class="py-4 px-4 font-body-sm text-body-sm text-on-surface-variant text-primary underline cursor-pointer hover:text-primary-container">LinkedIn Scrape</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-4 border-t border-outline-variant/10 bg-surface flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Showing 1-3 of 1,204 records</span>
+<div class="flex gap-2">
+<button class="px-3 py-1 border border-outline-variant rounded text-on-surface-variant hover:bg-surface-container transition-colors disabled:opacity-50" disabled="">Prev</button>
+<button class="px-3 py-1 border border-outline-variant rounded text-on-surface-variant hover:bg-surface-container transition-colors">Next</button>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+</body></html>
