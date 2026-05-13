@@ -1,11 +1,14 @@
 import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvider } from "@tanstack/react-router";
+import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { createContext, useContext, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { createRoot } from "react-dom/client";
+import { parseCsvTalentPool, type CandidateRecord } from "./csv-candidate-records.js";
 import "./styles.css";
 
 type AppSession = {
   talentPoolFileName: string | null;
   candidateRecordCount: number;
+  candidateRecords: CandidateRecord[];
   searchRequest: string;
   searchCriteria: string[];
   shortlistCount: number;
@@ -21,6 +24,7 @@ type AppSessionContextValue = {
 const initialSession: AppSession = {
   talentPoolFileName: null,
   candidateRecordCount: 0,
+  candidateRecords: [],
   searchRequest: "",
   searchCriteria: [],
   shortlistCount: 0,
@@ -136,7 +140,55 @@ function HomeRoute() {
 }
 
 function TalentPoolRoute() {
-  const { session } = useAppSession();
+  const { session, setSession } = useAppSession();
+  const [uploadStatus, setUploadStatus] = useState("No Talent Pool File selected yet.");
+  const [uploadError, setUploadError] = useState(false);
+
+  async function handleTalentPoolFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const [file] = event.target.files ?? [];
+
+    if (!file) {
+      setUploadStatus("No Talent Pool File selected yet.");
+      setUploadError(false);
+      return;
+    }
+
+    if (!isCsvFile(file)) {
+      setUploadStatus("Unsupported Talent Pool File. Upload a CSV file.");
+      setUploadError(true);
+      return;
+    }
+
+    try {
+      const csvText = await file.text();
+      const parsed = parseCsvTalentPool(csvText);
+      setSession((current) => ({
+        ...current,
+        talentPoolFileName: file.name,
+        candidateRecordCount: parsed.candidateRecords.length,
+        candidateRecords: parsed.candidateRecords,
+        searchRequest: "",
+        searchCriteria: [],
+        shortlistCount: 0,
+        selectedMatchId: null,
+      }));
+      setUploadStatus(`Parsed ${parsed.candidateRecords.length} Candidate Records from ${file.name}.`);
+      setUploadError(false);
+    } catch (error) {
+      setSession((current) => ({
+        ...current,
+        talentPoolFileName: null,
+        candidateRecordCount: 0,
+        candidateRecords: [],
+        searchRequest: "",
+        searchCriteria: [],
+        shortlistCount: 0,
+        selectedMatchId: null,
+      }));
+      setUploadStatus(error instanceof Error ? error.message : "The Talent Pool File could not be parsed.");
+      setUploadError(true);
+    }
+  }
 
   return (
     <section className="space-y-6">
@@ -151,11 +203,20 @@ function TalentPoolRoute() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <section className="rounded-2xl border border-outline-soft bg-surface-lowest p-6">
           <div className="rounded-xl border border-dashed border-outline-soft bg-surface-low p-6">
-            <h2 className="font-serif text-2xl font-semibold text-slate">Talent Pool File upload shell</h2>
+            <h2 className="font-serif text-2xl font-semibold text-slate">Talent Pool File upload</h2>
             <p className="mt-3 text-sm leading-6 text-muted">
-              The upload interaction is reserved for the next vertical slice. No ATS import, Notion import, sync, export, or persistence is active here.
+              Upload CSV only. No ATS import, Notion import, sync, export, inline editing, or persistence is active here.
+            </p>
+            <label className="mt-5 inline-flex cursor-pointer rounded-lg bg-slate px-4 py-3 text-sm font-semibold text-white hover:bg-slate-strong">
+              Choose CSV Talent Pool File
+              <input className="sr-only" type="file" accept=".csv,text/csv" onChange={handleTalentPoolFileChange} />
+            </label>
+            <p className={`mt-4 text-sm leading-6 ${uploadError ? "text-earth" : "text-muted"}`} aria-live="polite">
+              {uploadStatus}
             </p>
           </div>
+
+          <CandidateRecordTable records={session.candidateRecords} />
         </section>
 
         <aside className="rounded-2xl border border-outline-soft bg-surface-low p-6">
@@ -167,6 +228,89 @@ function TalentPoolRoute() {
       </div>
     </section>
   );
+}
+
+function isCsvFile(file: File) {
+  return file.name.toLowerCase().endsWith(".csv") || file.type === "text/csv";
+}
+
+function CandidateRecordTable({ records }: { records: CandidateRecord[] }) {
+  const columns = useMemo<ColumnDef<CandidateRecord>[]>(
+    () => [
+      { header: "Row", accessorFn: (record) => record.rowNumber },
+      { header: "Name", accessorFn: (record) => formatCell(record.canonicalFields.name) },
+      { header: "Current role", accessorFn: (record) => formatCell(record.canonicalFields.currentRole) },
+      { header: "Location", accessorFn: (record) => formatCell(record.canonicalFields.location) },
+      { header: "Years experience", accessorFn: (record) => formatCell(record.canonicalFields.yearsExperience) },
+      { header: "Skills", accessorFn: (record) => formatList(record.canonicalFields.skills.terms) },
+      { header: "Industries", accessorFn: (record) => formatList(record.canonicalFields.industries) },
+      { header: "English level", accessorFn: (record) => formatCell(record.canonicalFields.englishLevel) },
+      { header: "Availability", accessorFn: (record) => formatCell(record.canonicalFields.availability) },
+      { header: "Last contact", accessorFn: (record) => formatCell(record.canonicalFields.lastContactDate) },
+      { header: "Source", accessorFn: (record) => formatCell(record.canonicalFields.source) },
+      { header: "Normalization gaps", accessorFn: (record) => formatList(record.gaps.map((gap) => gap.label)) },
+      { header: "Duplicate warnings", accessorFn: (record) => getDuplicateWarning(record, records) },
+    ],
+    [records],
+  );
+  const table = useReactTable({ data: records, columns, getCoreRowModel: getCoreRowModel() });
+
+  return (
+    <div className="mt-6 overflow-x-auto rounded-xl border border-outline-soft">
+      <table className="min-w-[1280px] divide-y divide-outline-soft text-left text-sm">
+        <thead className="bg-surface text-xs uppercase tracking-[0.14em] text-muted">
+          {table.getHeaderGroups().map((headerGroup) => (
+            <tr key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <th key={header.id} className="px-4 py-3 font-semibold">
+                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                </th>
+              ))}
+            </tr>
+          ))}
+        </thead>
+        <tbody className="divide-y divide-outline-soft bg-surface-lowest align-top">
+          {table.getRowModel().rows.length > 0 ? (
+            table.getRowModel().rows.map((row) => (
+              <tr key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className="max-w-[220px] px-4 py-4 text-muted">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={columns.length} className="px-4 py-8 text-center text-muted">
+                No Candidate Records loaded in this session.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function formatCell(value: string | number) {
+  return value ? String(value) : "Not provided";
+}
+
+function formatList(values: string[]) {
+  return values.length > 0 ? values.join(", ") : "Not provided";
+}
+
+function getDuplicateWarning(record: CandidateRecord, records: CandidateRecord[]) {
+  const name = record.canonicalFields.name.trim().toLowerCase();
+
+  if (!name) {
+    return "Not enough data";
+  }
+
+  const duplicateRows = records.filter((candidateRecord) => candidateRecord.canonicalFields.name.trim().toLowerCase() === name);
+
+  return duplicateRows.length > 1 ? `Possible duplicate name across ${duplicateRows.length} rows` : "None detected";
 }
 
 function MatchDetailRoute() {
