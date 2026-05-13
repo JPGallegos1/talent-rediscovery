@@ -771,85 +771,224 @@ function MatchDetailRoute() {
     }
 
     return (
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <article className="rounded-2xl border border-outline-soft bg-surface-lowest p-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-earth">Session-scoped Match detail</p>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h1 className="font-serif text-4xl font-semibold text-slate">{getCandidateRecordLabel(match)}</h1>
-              <p className="mt-2 text-muted">{match.candidateRecord.canonicalFields.currentRole || "Role not provided"}</p>
-            </div>
-            <span className="rounded-full bg-slate px-4 py-2 text-sm font-semibold text-white">{match.strength}</span>
-          </div>
-          <DetailSection title="Reasons" items={match.reasons} />
-          <DetailSection title="Candidate Record evidence" items={match.evidence.map((item) => `${item.label}: ${item.value} (${item.matched})`)} />
-          <DetailSection title="Gaps" items={match.gaps} />
-          <section className="mt-8 rounded-2xl border border-outline-soft bg-surface-low p-6">
-            <h2 className="font-serif text-xl font-semibold text-slate">Create editable draft</h2>
-            <p className="mt-3 text-sm leading-6 text-muted">
-              Available when the Suggested Next Action is contact or recontact-oriented. Talent Rediscovery never sends outreach automatically.
-            </p>
-            <button
-              type="button"
-              className="mt-4 rounded-lg bg-slate px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-outline-soft"
-              disabled={!isDraftable}
-              onClick={handleCreateDraft}
-            >
-              Create editable draft
-            </button>
-            <p className="mt-3 text-sm leading-6 text-muted" aria-live="polite">
-              {isDraftable ? draftStatus : "Editable drafts are unavailable unless the Suggested Next Action is to contact or recontact."}
-            </p>
-            {draftText ? (
-              <label className="mt-4 grid gap-2 text-sm font-semibold text-slate" htmlFor="message-draft">
-                Editable message draft
-                <textarea
-                  id="message-draft"
-                  className="min-h-48 rounded-xl border border-outline-soft bg-surface-lowest p-4 text-sm font-normal leading-6 text-ink outline-none focus:border-slate"
-                  value={draftText}
-                  onChange={(event) => setDraftText(event.target.value)}
-                />
-              </label>
-            ) : null}
-          </section>
-        </article>
+      <section>
+        <div className="mb-6 flex items-center gap-2 text-sm text-muted">
+          <Link to="/" className="flex items-center gap-1 text-muted transition hover:text-slate">
+            <span className="material-symbols-outlined text-[14px]">arrow_back</span>
+            {session.searchRequest || "Search Request"}
+          </Link>
+          <span>/</span>
+          <span className="text-slate">Match Analysis</span>
+        </div>
 
-        <aside className="rounded-2xl border border-outline-soft bg-surface-low p-6">
-          <h2 className="font-serif text-xl font-semibold text-slate">Suggested Next Action</h2>
-          <p className="mt-3 text-sm leading-6 text-muted">{match.suggestedNextAction}</p>
-          <DetailSection title="Risks" items={match.risks} compact />
-        </aside>
+        <div className="flex flex-col items-start justify-between gap-6 rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card md:flex-row md:items-center">
+          <div className="flex items-center gap-6">
+            <div className="flex size-20 shrink-0 items-center justify-center rounded-full bg-slate-soft text-[32px] font-bold text-slate shadow-sm">
+              {getCandidateRecordLabel(match).charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h2 className="font-serif text-[32px] font-semibold leading-10 tracking-[-0.01em] text-slate">{getCandidateRecordLabel(match)}</h2>
+              <p className="mt-1 text-lg leading-7 text-muted">{match.candidateRecord.canonicalFields.currentRole || "Role not provided"}</p>
+              <div className="mt-2 flex items-center gap-4 text-xs font-semibold text-muted">
+                {match.candidateRecord.canonicalFields.location ? (
+                  <span className="flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[16px]">location_on</span>
+                    {match.candidateRecord.canonicalFields.location}
+                  </span>
+                ) : null}
+                <span className="flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[16px]">schedule</span>
+                  Session-scoped Match
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted">Match Assessment</p>
+            <span className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-lg font-semibold shadow-sm ${
+              match.strength === "Strong"
+                ? "bg-evidence-soft text-evidence"
+                : match.strength === "Possible"
+                ? "bg-secondary-soft text-secondary-strong"
+                : "bg-risk-soft text-risk"
+            }`}>
+              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              {match.strength} Match
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <div className="space-y-6 lg:col-span-8">
+            <section className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card">
+              <h3 className="mb-4 font-serif text-xl font-semibold text-slate">
+                <span className="material-symbols-outlined mr-2 align-middle text-slate">insights</span>
+                Evidence of Fit
+              </h3>
+              <p className="mb-6 text-base leading-7 text-muted">
+                Based on the Search Request, here is why this Candidate Record was surfaced as a Match.
+              </p>
+              <div className="space-y-4">
+                {match.reasons.map((reason) => (
+                  <div key={reason} className="flex items-start gap-4 rounded-lg bg-surface-container-low/50 p-4 transition-colors hover:bg-surface-container-low">
+                    <div className="mt-1 flex size-10 shrink-0 items-center justify-center rounded-full bg-evidence-soft text-evidence">
+                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1", fontSize: "20px" }}>verified</span>
+                    </div>
+                    <div>
+                      <p className="text-sm leading-6 text-ink">{reason}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="font-serif text-xl font-semibold text-slate">
+                  <span className="material-symbols-outlined mr-2 align-middle text-slate">history</span>
+                  Candidate Record Evidence
+                </h3>
+              </div>
+              <div className="space-y-4">
+                {match.evidence.map((item) => (
+                  <div key={item.label} className="rounded-lg border border-outline-soft/10 bg-surface-low p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-slate">{item.label}</p>
+                        <p className="mt-1 text-sm leading-6 text-muted">{item.value}</p>
+                      </div>
+                      <span className="shrink-0 rounded bg-evidence-soft px-2 py-0.5 text-[10px] font-semibold text-evidence">
+                        {item.matched}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {match.gaps.length > 0 ? (
+                <div className="mt-4 border-t border-outline-soft/10 pt-4">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Information gaps</p>
+                  <ul className="space-y-2 text-sm leading-6 text-muted">
+                    {match.gaps.map((gap) => (
+                      <li key={gap} className="flex items-start gap-2">
+                        <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-secondary-strong" />
+                        {gap}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </section>
+          </div>
+
+          <div className="space-y-6 lg:col-span-4">
+            <section className="rounded-xl border border-earth/10 bg-surface-bright p-6 shadow-sm">
+              <h3 className="mb-4 font-serif text-xl font-semibold text-slate">
+                <span className="material-symbols-outlined mr-2 align-middle text-earth-strong">balance</span>
+                Considerations
+              </h3>
+
+              {match.risks.length > 0 ? (
+                <div className="mb-4">
+                  <h4 className="mb-3 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-earth-strong">
+                    <span className="material-symbols-outlined text-[16px]">warning</span>
+                    Points to Validate
+                  </h4>
+                  <ul className="space-y-3 text-sm leading-6 text-muted">
+                    {match.risks.map((risk) => (
+                      <li key={risk} className="flex items-start gap-2">
+                        <span className="mt-2 size-1.5 shrink-0 rounded-full bg-earth-strong" />
+                        {risk}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              <hr className="my-4 border-outline-soft/20" />
+
+              <div>
+                <h4 className="mb-3 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-secondary-strong">
+                  <span className="material-symbols-outlined text-[16px]">help</span>
+                  Missing Information
+                </h4>
+                {match.gaps.length > 0 ? (
+                  <ul className="space-y-3 text-sm leading-6 text-muted">
+                    {match.gaps.map((gap) => (
+                      <li key={gap} className="flex items-start gap-2">
+                        <span className="mt-2 size-1.5 shrink-0 rounded-full bg-secondary-strong" />
+                        {gap}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm leading-6 text-muted">No significant information gaps identified.</p>
+                )}
+              </div>
+            </section>
+
+            <section className="overflow-hidden rounded-xl border border-primary/10 bg-surface-lowest shadow-lg">
+              <div className="border-b border-outline-soft/10 bg-surface-container-low px-6 py-4">
+                <h3 className="font-serif text-xl font-semibold text-slate">
+                  <span className="material-symbols-outlined mr-2 align-middle text-slate">forward_to_inbox</span>
+                  Suggested Next Action
+                </h3>
+                <p className="mt-1 text-xs font-semibold text-muted">{match.suggestedNextAction}</p>
+              </div>
+              <div className="p-6">
+                <div className="mb-4">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted" htmlFor="message-draft">
+                    Editable Draft
+                  </label>
+                  {draftText ? (
+                    <textarea
+                      id="message-draft"
+                      className="min-h-36 w-full resize-none rounded-lg border border-outline-soft/30 bg-surface-bright p-3 text-sm leading-6 text-ink outline-none transition focus:border-slate focus:ring-1 focus:ring-slate"
+                      value={draftText}
+                      onChange={(event) => setDraftText(event.target.value)}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      className="w-full rounded-lg bg-slate-strong px-4 py-3 text-sm font-bold text-white transition hover:bg-slate disabled:cursor-not-allowed disabled:bg-outline-soft"
+                      disabled={!isDraftable}
+                      onClick={handleCreateDraft}
+                    >
+                      Create editable draft
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs leading-5 text-muted" aria-live="polite">
+                  {draftText
+                    ? "Editable draft created for recruiter review. It has not been sent."
+                    : isDraftable
+                    ? "Create an editable draft to review and customize before using."
+                    : "Editable drafts are unavailable unless the Suggested Next Action is to contact or recontact."}
+                </p>
+                {draftText ? (
+                  <p className="mt-3 flex items-center gap-1 text-xs font-semibold text-muted">
+                    <span className="material-symbols-outlined text-[14px]">info</span>
+                    Talent Rediscovery never sends outreach automatically.
+                  </p>
+                ) : null}
+              </div>
+            </section>
+          </div>
+        </div>
       </section>
     );
   }
 
   return (
-    <section className="rounded-2xl border border-outline-soft bg-surface-lowest p-8">
-      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-earth">Session-scoped Match detail</p>
-      <h1 className="mt-4 font-serif text-4xl font-semibold text-slate">No Match is available for this session</h1>
-      <p className="mt-4 max-w-2xl text-base leading-7 text-muted">
+    <section className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-8 text-center shadow-stitch-card">
+      <span className="material-symbols-outlined mb-4 text-[48px] text-slate/40">verified</span>
+      <h2 className="font-serif text-2xl font-semibold text-slate">No Match is available for this session</h2>
+      <p className="mx-auto mt-2 max-w-md text-base leading-7 text-muted">
         Match detail routes are not persistent deep links. Load a Talent Pool File and run a Search Request to create an ephemeral Shortlist before opening a Match.
       </p>
-      <Link to="/" className="mt-6 inline-flex rounded-lg bg-slate px-4 py-3 text-sm font-semibold text-white hover:bg-slate-strong">
+      <Link to="/" className="mt-6 inline-flex rounded-lg bg-slate-strong px-4 py-3 text-sm font-bold text-white transition hover:bg-slate">
         Return to Home
       </Link>
-    </section>
-  );
-}
-
-
-
-function DetailSection({ title, items, compact = false }: { title: string; items: string[]; compact?: boolean }) {
-  return (
-    <section className={compact ? "mt-6" : "mt-8"}>
-      <h2 className="font-serif text-xl font-semibold text-slate">{title}</h2>
-      <ul className="mt-3 space-y-2 text-sm leading-6 text-muted">
-        {items.map((item) => (
-          <li key={item} className="rounded-lg bg-surface-low px-3 py-2">
-            {item}
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }
