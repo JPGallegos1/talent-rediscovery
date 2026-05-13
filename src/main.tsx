@@ -62,37 +62,118 @@ function useAppSession() {
 function RootLayout() {
   return (
     <AppSessionProvider>
-      <div className="min-h-screen bg-paper text-ink">
-        <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col lg:grid lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside className="border-b border-outline-soft bg-slate px-6 py-6 text-white lg:border-b-0 lg:border-r">
-            <Link to="/" className="block font-serif text-2xl font-semibold leading-tight">
-              Talent Rediscovery
-            </Link>
-            <p className="mt-3 text-sm leading-6 text-white/75">
-              Search recruiting memory through Candidate Records, not external sourcing automation.
-            </p>
-            <nav className="mt-8 grid gap-2 text-sm font-semibold">
-              <NavLink to="/" label="Home" />
-              <NavLink to="/talent-pool" label="Talent Pool" />
-            </nav>
-          </aside>
+      <div className="min-h-screen bg-paper text-ink lg:h-screen lg:overflow-hidden">
+        <div className="flex min-h-screen flex-col lg:h-screen lg:flex-row">
+          <SideNav />
 
-          <main className="min-w-0 px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
-            <Outlet />
-          </main>
+          <div className="flex min-w-0 flex-1 flex-col lg:ml-[280px]">
+            <TopAppBar />
+            <MobileNav />
+            <main className="custom-scrollbar min-w-0 flex-1 overflow-y-auto bg-paper px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
+              <Outlet />
+            </main>
+          </div>
         </div>
       </div>
     </AppSessionProvider>
   );
 }
 
-function NavLink({ to, label }: { to: "/" | "/talent-pool"; label: string }) {
+function SideNav() {
+  return (
+    <aside className="hidden h-screen w-[280px] shrink-0 flex-col border-r border-outline-soft/40 bg-surface px-4 py-6 lg:fixed lg:left-0 lg:top-0 lg:z-20 lg:flex">
+      <Link to="/" className="flex items-center gap-3 px-4">
+        <span className="flex size-10 items-center justify-center rounded-full bg-slate-strong text-white">
+          <span className="material-symbols-outlined text-[24px]">data_exploration</span>
+        </span>
+        <span>
+          <span className="block font-serif text-2xl font-bold leading-7 text-slate">Talent Rediscovery</span>
+          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-muted">Recruiting memory</span>
+        </span>
+      </Link>
+
+      <Link
+        to="/talent-pool"
+        className="mt-12 flex w-full items-center justify-center gap-2 rounded-lg bg-slate-strong px-4 py-3 text-sm font-bold text-white transition hover:bg-slate"
+      >
+        <span className="material-symbols-outlined text-[18px]">cloud_upload</span>
+        Upload Talent Pool
+      </Link>
+
+      <nav className="mt-8 grid gap-2 text-sm font-semibold">
+        <NavLink to="/" label="Home" icon="psychology" />
+        <NavLink to="/talent-pool" label="Talent Pool" icon="group" />
+        <span className="flex items-center gap-3 rounded-lg px-4 py-3 text-muted/70" aria-disabled="true">
+          <span className="material-symbols-outlined">verified</span>
+          Matches
+        </span>
+      </nav>
+
+      <div className="mt-auto border-t border-outline-soft/50 pt-5">
+        <p className="px-4 text-xs font-semibold uppercase tracking-[0.16em] text-muted">MVP boundary</p>
+        <p className="mt-2 px-4 text-sm leading-6 text-muted">
+          In-memory Talent Pools, ephemeral Shortlists, no external actions.
+        </p>
+      </div>
+    </aside>
+  );
+}
+
+function TopAppBar() {
+  return (
+    <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-outline-soft/40 bg-paper/90 px-5 shadow-sm backdrop-blur-md sm:px-8 lg:px-10">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Link to="/" className="flex items-center gap-2 font-serif text-xl font-semibold text-slate lg:hidden">
+          <span className="material-symbols-outlined text-[24px]">data_exploration</span>
+          Talent Rediscovery
+        </Link>
+        <label className="relative hidden w-full max-w-md md:block" htmlFor="workspace-search">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-muted-soft">search</span>
+          <input
+            id="workspace-search"
+            className="w-full rounded-full border border-outline-soft/40 bg-surface-low py-2 pl-10 pr-4 text-sm text-muted outline-none"
+            placeholder="Search current session..."
+            readOnly
+          />
+        </label>
+      </div>
+
+      <div className="flex items-center gap-3 text-muted">
+        <span className="hidden rounded-full bg-surface-high px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] sm:inline-flex">Demo session</span>
+        <button type="button" className="rounded-full p-2 text-muted-soft" disabled aria-label="Notifications unavailable in MVP">
+          <span className="material-symbols-outlined">notifications</span>
+        </button>
+        <button type="button" className="rounded-full p-2 text-muted-soft" disabled aria-label="Help unavailable in MVP">
+          <span className="material-symbols-outlined">help_outline</span>
+        </button>
+        <div className="flex size-8 items-center justify-center rounded-full border border-outline-soft/60 bg-earth-strong text-xs font-bold text-white" aria-hidden="true">
+          TR
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function MobileNav() {
+  return (
+    <nav className="flex gap-2 overflow-x-auto border-b border-outline-soft/40 bg-surface px-5 py-3 text-sm font-semibold sm:px-8 lg:hidden">
+      <NavLink to="/" label="Home" icon="psychology" compact />
+      <NavLink to="/talent-pool" label="Talent Pool" icon="group" compact />
+    </nav>
+  );
+}
+
+function NavLink({ to, label, icon, compact = false }: { to: "/" | "/talent-pool"; label: string; icon: string; compact?: boolean }) {
   return (
     <Link
       to={to}
-      className="rounded-lg px-3 py-2 text-white/75 transition hover:bg-white/10 hover:text-white [&.active]:bg-white/15 [&.active]:text-white"
+      className={[
+        "flex items-center gap-3 rounded-lg text-muted transition hover:bg-surface-high hover:text-slate [&.active]:border-l-4 [&.active]:border-earth [&.active]:bg-surface-high/70 [&.active]:font-bold [&.active]:text-slate",
+        compact ? "shrink-0 px-3 py-2 [&.active]:pl-2" : "px-4 py-3 [&.active]:pl-3",
+      ].join(" ")}
       activeOptions={{ exact: to === "/" }}
     >
+      <span className="material-symbols-outlined">{icon}</span>
       {label}
     </Link>
   );
