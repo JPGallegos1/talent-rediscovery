@@ -1092,6 +1092,13 @@ function getCandidateRecordLabel(match: Match) {
   return match.candidateRecord.canonicalFields.name || `Candidate Record ${match.candidateRecord.rowNumber}`;
 }
 
+function formatToolName(name: string): string {
+  return name
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (s) => s.toUpperCase())
+    .trim();
+}
+
 function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
   const { session, setSession } = useAppSession();
   const router = useRouter();
@@ -1131,6 +1138,12 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
       .filter((p) => p.type === "text" && p.text)
       .map((p) => p.text)
       .join("");
+  }
+
+  function getToolCalls(message: { parts: unknown[] }): { toolName: string; args: unknown; state: string }[] {
+    return (message.parts as { type: string; toolName?: string; args?: unknown; state?: string }[])
+      .filter((p) => p.type === "tool-invocation" && p.toolName)
+      .map((p) => ({ toolName: p.toolName!, args: p.args, state: p.state || "result" }));
   }
 
   function handleSend() {
@@ -1242,30 +1255,94 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
           messages.filter((m) => m.role === "user" || m.role === "assistant").map((message) => {
             const isUser = message.role === "user";
             const text = getMessageText(message);
-            if (!text) return null;
+            const toolCalls = getToolCalls(message);
+            const hasToolCalls = toolCalls.length > 0;
             return (
               <div key={message.id} className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
                 <span className="ml-1 text-xs font-semibold uppercase tracking-wider text-muted">
                   {isUser ? "You" : "Copilot"}
                 </span>
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm whitespace-pre-wrap ${
-                    isUser
-                      ? "rounded-tr-sm bg-slate text-white"
-                      : "rounded-tl-sm border border-outline-soft/20 bg-surface-lowest text-ink"
-                  }`}
-                >
-                  {text}
-                </div>
+                {text ? (
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm whitespace-pre-wrap ${
+                      isUser
+                        ? "rounded-tr-sm bg-slate text-white"
+                        : "rounded-tl-sm border border-outline-soft/20 bg-surface-lowest text-ink"
+                    }`}
+                  >
+                    {text}
+                  </div>
+                ) : null}
+                {hasToolCalls ? (
+                  <div className="w-full max-w-[90%] rounded-xl border border-outline-soft/20 bg-surface-low p-1 shadow-sm">
+                    <div className="flex items-center gap-2 px-3 pt-2 pb-1">
+                      <span className="material-symbols-outlined text-[16px] text-earth">memory</span>
+                      <span className="text-xs font-semibold uppercase tracking-wide text-muted">Agent Activity</span>
+                    </div>
+                    {toolCalls.map((tc, i) => {
+                      const isLast = i === toolCalls.length - 1;
+                      const isComplete = tc.state === "result";
+                      const argsStr = tc.args ? JSON.stringify(tc.args).slice(0, 100) : "";
+                      return (
+                        <div key={tc.toolName}>
+                          {i > 0 ? <div className="mx-3 h-px bg-outline-soft/10" /> : null}
+                          <div className={`mx-1 flex items-start gap-3 rounded-lg p-3 ${isLast && isStreaming ? "bg-primary/5 ring-1 ring-primary/10" : ""}`}>
+                            <span className={`material-symbols-outlined mt-0.5 text-[18px] ${isLast && isStreaming ? "text-primary" : "text-earth"}`}>
+                              {isStreaming && isLast ? "progress_activity" : "check_circle"}
+                            </span>
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-ink">{formatToolName(tc.toolName)}</span>
+                              </div>
+                              {argsStr ? (
+                                <div className="mt-1 overflow-x-auto rounded border border-outline-soft/10 bg-surface-lowest px-2 py-1 text-[11px] font-mono text-muted opacity-70">
+                                  {argsStr}{argsStr.length >= 100 ? "..." : ""}
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
             );
           })
         )}
 
         {isStreaming ? (
-          <div className="flex items-start gap-2 rounded-lg bg-surface-high/50 px-4 py-3 text-sm leading-6 text-muted">
-            <span className="material-symbols-outlined shrink-0 animate-pulse text-[16px]">psychology</span>
-            <span>Copilot is thinking...</span>
+          <div className="flex flex-col items-start gap-1 w-full">
+            <div className="flex items-end gap-3 max-w-full">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-earth-soft text-earth shadow-sm">
+                <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+              </div>
+              <div className="relative w-full rounded-2xl rounded-tl-sm border border-earth/30 bg-surface p-5 shadow-sm">
+                <p className="mb-4 flex items-center gap-2 text-sm font-medium text-ink">
+                  Copilot is analyzing the Talent Pool
+                  <span className="inline-flex gap-1 text-earth">
+                    <span className="size-1.5 animate-pulse rounded-full bg-current opacity-60" />
+                    <span className="size-1.5 animate-pulse rounded-full bg-current opacity-80" style={{ animationDelay: "300ms" }} />
+                    <span className="size-1.5 animate-pulse rounded-full bg-current" style={{ animationDelay: "600ms" }} />
+                  </span>
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[16px] text-evidence">check_circle</span>
+                    <div className="h-2 w-full max-w-[140px] rounded-full bg-surface-variant" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[16px] text-evidence">check_circle</span>
+                    <div className="h-2 w-full max-w-[180px] rounded-full bg-surface-variant" />
+                  </div>
+                  <div className="flex items-center gap-3 opacity-60">
+                    <span className="material-symbols-outlined text-[16px] text-muted-soft">hourglass_bottom</span>
+                    <div className="h-2 w-full max-w-[120px] rounded-full bg-earth/20" />
+                  </div>
+                </div>
+                <div className="absolute bottom-0 left-0 h-[3px] w-2/5 rounded-r-full bg-earth" />
+              </div>
+            </div>
           </div>
         ) : null}
 
