@@ -48,17 +48,63 @@ Implementation translation:
 - Right-side Copilot panel shows "Waiting for data" status and welcome message; input is disabled with "Upload data to start chatting..." placeholder.
 - `SearchRequestForm` (text area + submit) must NOT appear in this state.
 
-### `/` Home — Active Workspace (Candidate Records loaded)
+### `/` Home — Data Ready (Candidate Records loaded, no Search Request executed)
 
-Use `docs/design/stitch/copilot_cockpit_talent_rediscovery/` as the design basis for users who have loaded a Talent Pool. This state activates after a CSV upload provides Candidate Records.
+Use `docs/design/stitch/home/copilot_data_ready_no_search/` as the authoritative design for the state just after uploading a CSV Talent Pool File, before any Search Request has been executed.
+
+Implementation translation:
+
+- Hero card shows Candidate Record count prominently (e.g. "1,204 records ready to search").
+- Secondary metric cards show useful indicators (normalized count, source file, session boundary).
+- Suggested prompt chips appear as clickable shortcuts (e.g. "Find Senior Backend Engineers").
+- No SearchRequestForm is visible in this state — the search is initiated from the Copilot chat.
+- Right-side Copilot panel says "Data loaded successfully. I'm ready to help..." with an enabled textarea.
+- Correct domain labels: no Enrichment Rate percentages, no ATS & LinkedIn sources, no Last Sync.
+
+### `/` Home — Active Workspace (Candidate Records loaded, Search Request executed)
+
+Use `docs/design/stitch/copilot_cockpit_talent_rediscovery/` as the design basis for users who have loaded a Talent Pool AND executed a Search Request. This state activates only after a Search Request produces a Shortlist.
 
 Implementation translation:
 
 - Main center area: current Search Request, read-only Interpreted Search Criteria, and current Shortlist.
 - Right panel: Chat Copilot first; Voice Copilot controls can be present but may remain disabled until realtime is implemented.
 - Navigation label should be `Home` or an equivalent product-home label, even if the visual export calls it `Copilot`.
-- Search Request creation should be explicit: chat can draft or propose a Search Request, but building a Shortlist requires a clear run action.
+- Search Request re-execution is available for refinement, but the initial intent originates from the Copilot chat.
 - Match cards should show qualitative strength, reasons, evidence, gaps/risks summary, and Suggested Next Action.
+
+### `/` Home — Error / Thinking / Tool Calling States
+
+These temporary or error states apply to both the Data Ready and Active Workspace modes. The right-side Copilot panel changes its appearance based on the current state.
+
+**Thinking state** (`docs/design/stitch/home/copilot_agent_thinking_state/`):
+- Copilot bubble shows "Copilot is analyzing the Talent Pool" with animated dots.
+- Progress bars indicate processing steps (check_circle for completed, hourglass for pending).
+- Input textarea is disabled during processing with "Ask a follow-up question..." placeholder.
+
+**Tool Calling state** (`docs/design/stitch/home/copilot_tool_calling_interaction/`):
+- "Agent Activity" panel appears in the chat timeline when the AI calls Intelligence Layer tools.
+- Each tool call shows the tool name, duration (e.g. "0.8s"), and JSON arguments.
+- Completed tool calls show check_circle; in-progress calls show a spinner.
+- Input textarea disabled with "AI is working..." placeholder. "Press Esc to cancel" hint.
+
+**Client Error 4xx** (`docs/design/stitch/home/copilot_client_error_4xx/`):
+- Copilot responds with a red-tinted error bubble: "I couldn't interpret that request."
+- A rephrase suggestion example is shown inline.
+- Left canvas may show suggested search cards to guide the recruiter.
+- Textarea stays enabled for the recruiter to try again.
+
+**Server Error 5xx** (`docs/design/stitch/home/copilot_server_error_5xx/`):
+- Full-screen center canvas with cloud_off icon, "Unexpected Error (500)", and description.
+- "Retry Connection" and "Return to Dashboard" buttons.
+- Error trace details shown (ERR_INTEL_LAYER_TIMEOUT).
+- Copilot sidebar shows "System Maintenance" with disabled input.
+
+**Offline State** (`docs/design/stitch/home/copilot_offline_state/`):
+- Copilot sidebar shows offline indicator.
+- Input disabled with "Copilot is currently offline..." placeholder.
+- "Connection lost" message with Retry button.
+- No full-screen interruption — only the Copilot panel reflects the offline status.
 
 ### `/talent-pool`
 
