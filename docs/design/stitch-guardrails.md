@@ -18,17 +18,47 @@ Lightweight guardrails so future agents and contributors preserve the Stitch-bas
 | Copilot composer disabled with "Upload data to start chatting..." placeholder | Must not accept input |
 | `SearchRequestForm` (textarea + submit) must NOT appear | Prohibited in empty state |
 
-### `/` Home — Active Workspace (Candidate Records loaded)
+### `/` Home — Data Ready (Candidate Records loaded, no Search Request executed)
+
+| Expectation | Enforcement |
+|---|---|
+| Layout follows Stitch `copilot_data_ready_no_search/`: hero card + metrics grid left, Copilot panel right (380px) | Visual review |
+| Hero shows record count prominently (e.g. "1,204 records ready to search") | Must not show SearchRequestForm |
+| Secondary metrics show useful counts (normalized records, file name, session boundary) | No fake percentages, no sync statuses |
+| Suggested prompt chips appear as clickable shortcuts | Visual review |
+| Copilot panel says "Data loaded successfully. I'm ready to help..." with enabled textarea | Textarea must accept input |
+| No SearchRequestForm (textarea + submit) is visible | Prohibited in data-ready state |
+
+### `/` Home — Active Workspace (Candidate Records loaded, Search Request executed)
 
 | Expectation | Enforcement |
 |---|---|
 | Layout follows Stitch `copilot_cockpit_talent_rediscovery/`: workspace left + Copilot panel right (380px) | Visual review |
-| Search Request execution is explicit via textarea + submit button | Must not auto-run on chat |
+| Search Request re-execution is available via textarea + submit button | Must not auto-run on chat |
 | Interpreted Search Criteria shown read-only with Primary Intent + Extracted Criteria chips | No inline editing |
 | Shortlist Match cards show qualitative label only (Strong / Possible / Weak) | Must not reintroduce percentage scores |
 | Match cards separate Evidence, Gaps/Risks, and Suggested Next Action into distinct areas | Visual review |
-| Copilot panel uses chat bubble treatment with composer textarea (disabled until Chat Copilot is implemented) | Disabled affordances only |
+| Copilot panel uses chat bubble treatment with composer textarea (enabled — Chat Copilot is implemented) | Enabled affordance |
 | Empty Shortlist state guides to run a Search Request | Must not claim Matches without explicit execution |
+
+### `/` Home — Copilot Thinking & Tool Calling States
+
+| Expectation | Enforcement |
+|---|---|
+| Thinking bubble shows "Copilot is analyzing the Talent Pool" with animated dots and progress bars | Must replace generic "Copilot is thinking..." text |
+| Input textarea is disabled during processing with "Ask a follow-up question..." placeholder | Must not accept input |
+| "Agent Activity" timeline appears when the AI calls Intelligence Layer tools | Visual review |
+| Completed tool calls show check_circle with tool name and timing; in-progress calls show spinner | Visual review |
+| Tool arguments shown as expandable JSON snippet | Visual review |
+| Input disabled during tool calling with "AI is working..." placeholder and "Press Esc to cancel" hint | Must not accept input |
+
+### `/` Home — Copilot Error States
+
+| Expectation | Enforcement |
+|---|---|
+| 4xx / AI-level error: red-tinted bubble in Copilot with "I couldn't interpret that request" and rephrase suggestion example; textarea stays enabled | Must not disable the input |
+| 5xx / server error: full-screen center canvas with cloud_off icon, "Unexpected Error (500)", error trace, "Retry Connection" and "Return to Home" buttons; Copilot sidebar shows "System Maintenance" | Must not imply the error is a client bug |
+| Offline / network error: Copilot sidebar shows offline indicator; input disabled with "Copilot is currently offline..." placeholder; "Connection lost" message with Retry button | Must not show full-screen interruption |
 
 ### `/talent-pool` Talent Pool
 
@@ -185,8 +215,16 @@ Use Material Symbols Outlined (`material-symbols-outlined` class) for all icons.
 - `help_outline` — (disabled)
 - `filter_list` — Filter (disabled)
 - `download` — Export (disabled)
-- `send` — Chat composer (disabled)
+- `send` — Chat composer (enabled in active mode)
 - `mic` — Voice Copilot (disabled)
+- `progress_activity` — Tool call in progress (spinner)
+- `auto_awesome` — AI processing indicator
+- `hourglass_bottom` — Pending step indicator
+- `database` — Data card / data-ready state
+- `cloud_off` — Server error state (5xx)
+- `sync_problem` — Connection lost / offline indicator
+- `memory` — Agent activity / tool calling indicator
+- `attach_file` — File attachment (disabled)
 
 ---
 
