@@ -16,7 +16,7 @@ const app = new Hono();
 app.use("/api/*", cors());
 
 type ChatPayload = {
-  messages: { role: string; content: string }[];
+  messages: UIMessage[];
   sessionContext: {
     searchRequest: string | null;
     searchCriteria: Record<string, unknown> | null;
@@ -40,14 +40,9 @@ function isChatPayload(value: unknown): value is ChatPayload {
     return false;
   }
 
-  const messagesValid = value.messages.every((message) => {
-    return isRecord(message) && typeof message.role === "string" && typeof message.content === "string";
-  });
-
   const { sessionContext } = value;
 
   return (
-    messagesValid &&
     isNullableString(sessionContext.searchRequest) &&
     (isRecord(sessionContext.searchCriteria) || sessionContext.searchCriteria === null) &&
     Array.isArray(sessionContext.shortlist) &&
@@ -79,19 +74,23 @@ app.post("/api/chat", async (c) => {
       return c.json(copilotError("configuration_error", "Copilot chat is not configured."), 503);
     }
 
-    const systemMessage = {
-      role: "system" as const,
-      content: buildSystemPrompt(payload.sessionContext),
-    };
+    let modelMessages: Awaited<ReturnType<typeof convertToModelMessages>>;
+
+    try {
+      modelMessages = await convertToModelMessages(payload.messages);
+    } catch {
+      return c.json(copilotError("validation_error", "Chat request messages are invalid."), 400);
+    }
 
     const result = streamText({
       model: openai(chatModel),
-      messages: [systemMessage, ...payload.messages],
+      system: buildSystemPrompt(payload.sessionContext),
+      messages: modelMessages,
       tools: intelligenceActionTools,
       maxSteps: 5,
     });
 
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (error) {
     console.error("Copilot chat request failed", error);
 

@@ -1357,23 +1357,16 @@ function CopilotPanel({
 
           return response;
         },
-        prepareSendMessagesRequest: (options) => {
+        body: () => {
           const s = sessionRef.current;
           return {
-            ...options,
-            body: {
-              messages: options.messages.map((message) => ({
-                role: message.role,
-                content: getUiMessageText(message),
-              })),
-              sessionContext: {
-                searchRequest: s.searchRequest,
-                searchCriteria: s.searchCriteria,
-                shortlist: toCompactShortlistContext(s.shortlist),
-                candidateRecordCount: s.candidateRecordCount,
-                talentPoolFileName: s.talentPoolFileName,
-                selectedMatchId: s.selectedMatchId,
-              },
+            sessionContext: {
+              searchRequest: s.searchRequest,
+              searchCriteria: s.searchCriteria,
+              shortlist: toCompactShortlistContext(s.shortlist),
+              candidateRecordCount: s.candidateRecordCount,
+              talentPoolFileName: s.talentPoolFileName,
+              selectedMatchId: s.selectedMatchId,
             },
           };
         },
@@ -1381,10 +1374,41 @@ function CopilotPanel({
     [],
   );
 
-  const { messages, sendMessage, status } = useChat({
+  const handleToolCall: ChatOnToolCallCallback<UIMessage> = ({ toolCall }) => {
+    if (toolCall.toolName !== "createSearchRequest") return;
+
+    const input = toolCall.input as { searchRequest?: unknown };
+    const searchRequest = typeof input.searchRequest === "string" ? input.searchRequest.trim() : "";
+    if (!searchRequest) return;
+
+    setSession((current) => {
+      if (current.candidateRecords.length === 0) return current;
+
+      const searchCriteria = interpretSearchCriteria(searchRequest);
+      const shortlist = buildShortlist(current.candidateRecords, searchCriteria);
+
+      return {
+        ...current,
+        searchRequest,
+        searchCriteria,
+        shortlist,
+        selectedMatchId: null,
+      };
+    });
+
+    void addToolOutputRef.current?.({
+      tool: "createSearchRequest",
+      toolCallId: toolCall.toolCallId,
+      output: { applied: true },
+    });
+  };
+
+  const { messages, sendMessage, status, addToolOutput } = useChat({
     transport,
     onError: (chatError) => onCopilotError(classifyCopilotError(chatError)),
+    onToolCall: handleToolCall,
   });
+  addToolOutputRef.current = addToolOutput;
 
   function handleSend() {
     const text = input.trim();
