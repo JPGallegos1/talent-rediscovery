@@ -1132,6 +1132,20 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
   );
 
   const { messages, sendMessage, status, error } = useChat({ transport });
+  const [connectionError, setConnectionError] = useState(false);
+
+  useEffect(() => {
+    if (typeof navigator !== "undefined") {
+      const handleOnline = () => setConnectionError(false);
+      const handleOffline = () => setConnectionError(true);
+      window.addEventListener("online", handleOnline);
+      window.addEventListener("offline", handleOffline);
+      return () => {
+        window.removeEventListener("online", handleOnline);
+        window.removeEventListener("offline", handleOffline);
+      };
+    }
+  }, []);
 
   function getMessageText(message: { parts: unknown[] }): string {
     return (message.parts as { type: string; text?: string }[])
@@ -1227,9 +1241,9 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
           <div>
             <h3 className="font-serif text-xl font-semibold">Copilot</h3>
             <div className="mt-0.5 flex items-center gap-1.5">
-              <span className={`size-2 rounded-full ${isStreaming ? "bg-evidence" : "bg-muted-soft"}`} />
+              <span className={`size-2 rounded-full ${connectionError ? "bg-risk" : isStreaming ? "bg-evidence" : error ? "bg-risk" : "bg-muted-soft"}`} />
               <span className="text-xs font-semibold text-muted">
-                {isStreaming ? "Thinking" : error ? "Error" : "Ready"}
+                {connectionError ? "Offline" : isStreaming ? "Thinking" : error ? "Error" : "Ready"}
               </span>
             </div>
           </div>
@@ -1346,10 +1360,46 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
           </div>
         ) : null}
 
-        {error ? (
-          <div className="flex items-start gap-2 rounded-lg border border-risk-soft bg-risk-soft/50 px-4 py-3 text-sm leading-6 text-risk">
-            <span className="material-symbols-outlined shrink-0 text-[16px]">error</span>
-            <span>{error.message || "Connection error. Check that the server is running and OPENAI_API_KEY is set."}</span>
+        {error && !connectionError ? (
+          <div className="flex gap-3 max-w-full mt-2">
+            <div className="mt-1 flex size-6 shrink-0 items-center justify-center rounded-full bg-risk-soft border border-risk/20">
+              <span className="material-symbols-outlined text-on-error-container text-[14px]">error</span>
+            </div>
+            <div className="rounded-2xl rounded-tl-sm border border-risk/10 bg-risk-soft p-4 text-sm leading-6 text-on-error-container shadow-sm">
+              <p className="mb-2 font-medium">{error.name === "AbortError" ? "Request cancelled" : "I couldn't complete that request."}</p>
+              <p className="opacity-90 leading-relaxed">
+                {error.message?.includes("401") || error.message?.includes("API key")
+                  ? "The intelligence layer is not configured. Check that OPENAI_API_KEY is set and the server is running."
+                  : error.message?.includes("503") || error.message?.includes("timeout")
+                  ? "The intelligence layer is temporarily unavailable. Please try again in a moment."
+                  : `Could you try rephrasing? For example:`}
+                <br />
+                <span className="mt-1 inline-block rounded border border-risk/10 bg-risk/5 px-1 py-0.5 font-mono text-[13px]">
+                  {error.message?.includes("API key") ? "" : '"Senior Developers in London with React experience"'}
+                </span>
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {connectionError ? (
+          <div className="flex flex-col items-start gap-1 w-full mt-2">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="material-symbols-outlined text-[14px] text-risk">warning</span>
+              <span className="text-xs font-semibold text-risk">System Offline</span>
+            </div>
+            <div className="relative w-full overflow-hidden rounded-lg border border-risk/20 bg-risk-soft/20 px-4 py-4 text-sm leading-6 text-ink shadow-sm">
+              <div className="absolute inset-0 opacity-5" style={{ backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 10px, #ba1a1a 10px, #ba1a1a 11px)" }} />
+              <p className="relative z-10">Connection lost. The Copilot requires network access to the intelligence layer.</p>
+              <div className="relative z-10 mt-3 flex items-center justify-between border-t border-risk/10 pt-3">
+                <span className="flex items-center gap-1 text-xs text-risk/80">
+                  <span className="material-symbols-outlined text-[14px]">sync_problem</span> Offline
+                </span>
+                <button type="button" className="text-xs font-bold text-risk hover:underline" onClick={() => window.location.reload()}>
+                  Retry
+                </button>
+              </div>
+            </div>
           </div>
         ) : null}
 
