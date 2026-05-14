@@ -1,11 +1,14 @@
-import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvider } from "@tanstack/react-router";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, isTextUIPart } from "ai";
+import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvider, useRouter } from "@tanstack/react-router";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
-import { createContext, useContext, useMemo, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { createRoot } from "react-dom/client";
 import { parseCsvTalentPool, type CandidateRecord } from "./csv-candidate-records.js";
 import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "./message-draft.js";
 import { interpretSearchCriteria, type SearchCriteria } from "./search-criteria.js";
 import { buildShortlist, type Match } from "./shortlist-matches.js";
+import { toCompactShortlistContext } from "./intelligence-layer.js";
 import "./styles.css";
 
 type AppSession = {
@@ -1090,37 +1093,87 @@ function getCandidateRecordLabel(match: Match) {
 }
 
 function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
-  const { session } = useAppSession();
+  const { session, setSession } = useAppSession();
+  const router = useRouter();
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [input, setInput] = useState("");
+  const sessionRef = useRef(session);
+  sessionRef.current = session;
 
-  return (
-    <aside className="mt-6 flex w-full flex-col overflow-hidden rounded-xl border border-outline-soft/20 bg-surface-low shadow-stitch-panel xl:mt-0 xl:ml-6 xl:w-[380px] xl:shrink-0">
-      <div className="flex items-center justify-between border-b border-outline-soft/10 bg-surface/50 px-5 py-4 backdrop-blur">
-        <div className="flex items-center gap-2 text-slate">
-          <div className="flex size-10 items-center justify-center rounded-full bg-earth-soft text-earth">
-            <span className="material-symbols-outlined fill text-[20px]">psychology</span>
-          </div>
-          <div>
-            <h3 className="font-serif text-xl font-semibold">Copilot</h3>
-            <div className="mt-0.5 flex items-center gap-1.5">
-              <span className={`size-2 rounded-full ${mode === "empty" ? "bg-evidence" : "bg-muted-soft"}`} />
-              <span className="text-xs font-semibold text-muted">
-                {mode === "empty" ? "Waiting for data" : "Ready"}
-              </span>
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        prepareSendMessagesRequest: (options) => {
+          const s = sessionRef.current;
+          return {
+            ...options,
+            body: {
+              sessionContext: {
+                searchRequest: s.searchRequest,
+                searchCriteria: s.searchCriteria,
+                shortlist: toCompactShortlistContext(s.shortlist),
+                candidateRecordCount: s.candidateRecordCount,
+                talentPoolFileName: s.talentPoolFileName,
+                selectedMatchId: s.selectedMatchId,
+              },
+            },
+          };
+        },
+      }),
+    [],
+  );
+
+  const { messages, sendMessage, status, error } = useChat({ transport });
+
+  function getMessageText(message: { parts: unknown[] }): string {
+    return (message.parts as { type: string; text?: string }[])
+      .filter((p) => p.type === "text" && p.text)
+      .map((p) => p.text)
+      .join("");
+  }
+
+  function handleSend() {
+    const text = input.trim();
+    if (!text) return;
+    sendMessage({ text });
+    setInput("");
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const isStreaming = status === "streaming" || status === "submitted";
+
+  if (mode === "empty") {
+    return (
+      <aside className="mt-6 flex w-full flex-col overflow-hidden rounded-xl border border-outline-soft/20 bg-surface-low shadow-stitch-panel xl:mt-0 xl:ml-6 xl:w-[380px] xl:shrink-0">
+        <div className="flex items-center justify-between border-b border-outline-soft/10 bg-surface/50 px-5 py-4 backdrop-blur">
+          <div className="flex items-center gap-2 text-slate">
+            <div className="flex size-10 items-center justify-center rounded-full bg-earth-soft text-earth">
+              <span className="material-symbols-outlined fill text-[20px]">psychology</span>
+            </div>
+            <div>
+              <h3 className="font-serif text-xl font-semibold">Copilot</h3>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-evidence" />
+                <span className="text-xs font-semibold text-muted">Waiting for data</span>
+              </div>
             </div>
           </div>
+          <button type="button" className="rounded-full p-2 text-muted-soft transition hover:bg-surface-variant/30 hover:text-slate" disabled aria-label="Copilot menu unavailable in MVP">
+            <span className="material-symbols-outlined text-[20px]">more_vert</span>
+          </button>
         </div>
-        <button
-          type="button"
-          className="rounded-full p-2 text-muted-soft transition hover:bg-surface-variant/30 hover:text-slate"
-          disabled
-          aria-label="Copilot menu unavailable in MVP"
-        >
-          <span className="material-symbols-outlined text-[20px]">more_vert</span>
-        </button>
-      </div>
-
-      <div className={`flex-1 space-y-4 overflow-y-auto px-5 py-4 ${mode === "empty" ? "bg-surface" : ""}`}>
-        {mode === "empty" ? (
+        <div className="flex-1 space-y-4 overflow-y-auto bg-surface px-5 py-4">
           <div className="flex max-w-[90%] gap-4">
             <div className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-earth-soft text-earth">
               <span className="material-symbols-outlined text-[16px]">psychology</span>
@@ -1132,43 +1185,110 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
               <span className="ml-1 text-xs font-semibold text-muted-soft">Just now</span>
             </div>
           </div>
-        ) : (
-          <>
-            {session.copilotTranscript.map((message, index) => {
-              const isCopilot = message.speaker === "copilot";
-              return (
-                <div key={`${message.speaker}-${index}`} className={`flex flex-col gap-1 ${isCopilot ? "items-start" : "items-end"}`}>
-                  <span className="ml-1 text-xs font-semibold uppercase tracking-wider text-muted">
-                    {isCopilot ? "Copilot" : "You"}
-                  </span>
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm ${
-                      isCopilot
-                        ? "rounded-tl-sm border border-outline-soft/20 bg-surface-lowest text-ink"
-                        : "rounded-tr-sm bg-slate text-white"
-                    }`}
-                  >
-                    {message.text}
-                  </div>
-                </div>
-              );
-            })}
-
-            <div className="flex items-start gap-2 rounded-lg border border-secondary/10 bg-secondary-container/30 px-4 py-3 text-sm leading-6 text-muted">
-              <span className="material-symbols-outlined shrink-0 text-[16px]">check_circle</span>
-              <span>Talent Rediscovery never sends outreach automatically. All message drafts require recruiter review before use.</span>
+        </div>
+        <div className="border-t border-outline-soft/10 bg-surface px-5 py-4">
+          <div className="flex items-center rounded-xl border border-outline-soft/30 bg-surface-lowest shadow-sm opacity-60">
+            <textarea className="custom-scrollbar w-full resize-none border-none bg-transparent px-4 py-3 text-sm text-ink outline-none placeholder:text-muted-soft" placeholder="Upload data to start chatting..." rows={2} disabled />
+            <div className="flex shrink-0 items-center gap-1 pr-2 pb-2 self-end">
+              <button type="button" className="flex size-8 items-center justify-center rounded-full text-muted-soft" disabled aria-label="Voice Copilot not active in this slice">
+                <span className="material-symbols-outlined text-[20px]">mic</span>
+              </button>
+              <button type="button" className="flex size-8 items-center justify-center rounded-full bg-earth text-white" disabled aria-label="Send message">
+                <span className="material-symbols-outlined text-[18px]">send</span>
+              </button>
             </div>
-          </>
+          </div>
+          <p className="mt-2 px-1 text-xs text-muted-soft">Copilot requires a Talent Pool to function.</p>
+        </div>
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="mt-6 flex w-full flex-col overflow-hidden rounded-xl border border-outline-soft/20 bg-surface-low shadow-stitch-panel xl:mt-0 xl:ml-6 xl:w-[380px] xl:shrink-0">
+      <div className="flex items-center justify-between border-b border-outline-soft/10 bg-surface/50 px-5 py-4 backdrop-blur">
+        <div className="flex items-center gap-2 text-slate">
+          <div className="flex size-10 items-center justify-center rounded-full bg-earth-soft text-earth">
+            <span className="material-symbols-outlined fill text-[20px]">psychology</span>
+          </div>
+          <div>
+            <h3 className="font-serif text-xl font-semibold">Copilot</h3>
+            <div className="mt-0.5 flex items-center gap-1.5">
+              <span className={`size-2 rounded-full ${isStreaming ? "bg-evidence" : "bg-muted-soft"}`} />
+              <span className="text-xs font-semibold text-muted">
+                {isStreaming ? "Thinking" : error ? "Error" : "Ready"}
+              </span>
+            </div>
+          </div>
+        </div>
+        <button type="button" className="rounded-full p-2 text-muted-soft transition hover:bg-surface-variant/30 hover:text-slate" disabled aria-label="Copilot menu unavailable in MVP">
+          <span className="material-symbols-outlined text-[20px]">more_vert</span>
+        </button>
+      </div>
+
+      <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
+        {messages.length === 0 ? (
+          <div className="flex max-w-[90%] gap-4">
+            <div className="mt-1 flex size-8 shrink-0 items-center justify-center rounded-full bg-earth-soft text-earth">
+              <span className="material-symbols-outlined text-[16px]">psychology</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <div className="rounded-2xl rounded-tl-sm border border-outline-soft/20 bg-surface-lowest p-4 text-sm leading-6 text-ink shadow-sm">
+                I'm ready to help you rediscover talent. Describe the role you're looking for and I'll search your Talent Pool.
+              </div>
+            </div>
+          </div>
+        ) : (
+          messages.filter((m) => m.role === "user" || m.role === "assistant").map((message) => {
+            const isUser = message.role === "user";
+            const text = getMessageText(message);
+            if (!text) return null;
+            return (
+              <div key={message.id} className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
+                <span className="ml-1 text-xs font-semibold uppercase tracking-wider text-muted">
+                  {isUser ? "You" : "Copilot"}
+                </span>
+                <div
+                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm whitespace-pre-wrap ${
+                    isUser
+                      ? "rounded-tr-sm bg-slate text-white"
+                      : "rounded-tl-sm border border-outline-soft/20 bg-surface-lowest text-ink"
+                  }`}
+                >
+                  {text}
+                </div>
+              </div>
+            );
+          })
         )}
+
+        {isStreaming ? (
+          <div className="flex items-start gap-2 rounded-lg bg-surface-high/50 px-4 py-3 text-sm leading-6 text-muted">
+            <span className="material-symbols-outlined shrink-0 animate-pulse text-[16px]">psychology</span>
+            <span>Copilot is thinking...</span>
+          </div>
+        ) : null}
+
+        {error ? (
+          <div className="flex items-start gap-2 rounded-lg border border-risk-soft bg-risk-soft/50 px-4 py-3 text-sm leading-6 text-risk">
+            <span className="material-symbols-outlined shrink-0 text-[16px]">error</span>
+            <span>{error.message || "Connection error. Check that the server is running and OPENAI_API_KEY is set."}</span>
+          </div>
+        ) : null}
+
+        <div ref={chatEndRef} />
       </div>
 
       <div className="border-t border-outline-soft/10 bg-surface px-5 py-4">
         <div className="flex items-center rounded-xl border border-outline-soft/30 bg-surface-lowest shadow-sm transition-all focus-within:border-slate focus-within:ring-1 focus-within:ring-slate/20">
           <textarea
             className="custom-scrollbar w-full resize-none border-none bg-transparent px-4 py-3 text-sm text-ink outline-none placeholder:text-muted-soft"
-            placeholder={mode === "empty" ? "Upload data to start chatting..." : "Draft a new search intent..."}
+            placeholder="Describe the role you're looking for..."
             rows={2}
-            disabled
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isStreaming}
           />
           <div className="flex shrink-0 items-center gap-1 pr-2 pb-2 self-end">
             <button
@@ -1181,8 +1301,9 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
             </button>
             <button
               type="button"
-              className="flex size-8 items-center justify-center rounded-full bg-earth text-white shadow-sm transition hover:bg-earth-strong"
-              disabled
+              className="flex size-8 items-center justify-center rounded-full bg-earth text-white shadow-sm transition hover:bg-earth-strong disabled:opacity-50"
+              disabled={isStreaming || !input.trim()}
+              onClick={handleSend}
               aria-label="Send message"
             >
               <span className="material-symbols-outlined text-[18px]">send</span>
@@ -1190,7 +1311,7 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
           </div>
         </div>
         <p className="mt-2 px-1 text-xs text-muted-soft">
-          {mode === "empty" ? "Copilot requires a Talent Pool to function." : "Chat Copilot is not active in this slice."}
+          {isStreaming ? "Copilot is responding..." : "Enter to send, Shift+Enter for new line"}
         </p>
       </div>
     </aside>
