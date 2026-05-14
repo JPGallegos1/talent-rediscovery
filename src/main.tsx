@@ -1,5 +1,5 @@
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, isTextUIPart } from "ai";
+import { DefaultChatTransport, isTextUIPart, type ChatAddToolOutputFunction, type ChatOnToolCallCallback, type UIMessage } from "ai";
 import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvider, useRouter } from "@tanstack/react-router";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
@@ -333,6 +333,10 @@ function DataReadyHomeView() {
 function ActiveHomeView() {
   const { session, setSession } = useAppSession();
   const [draftSearchRequest, setDraftSearchRequest] = useState(session.searchRequest);
+
+  useEffect(() => {
+    setDraftSearchRequest(session.searchRequest);
+  }, [session.searchRequest]);
 
   function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1142,25 +1146,23 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const sessionRef = useRef(session);
+  const addToolOutputRef = useRef<ChatAddToolOutputFunction<UIMessage> | null>(null);
   sessionRef.current = session;
 
   const transport = useMemo(
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
-        prepareSendMessagesRequest: (options) => {
+        body: () => {
           const s = sessionRef.current;
           return {
-            ...options,
-            body: {
-              sessionContext: {
-                searchRequest: s.searchRequest,
-                searchCriteria: s.searchCriteria,
-                shortlist: toCompactShortlistContext(s.shortlist),
-                candidateRecordCount: s.candidateRecordCount,
-                talentPoolFileName: s.talentPoolFileName,
-                selectedMatchId: s.selectedMatchId,
-              },
+            sessionContext: {
+              searchRequest: s.searchRequest,
+              searchCriteria: s.searchCriteria,
+              shortlist: toCompactShortlistContext(s.shortlist),
+              candidateRecordCount: s.candidateRecordCount,
+              talentPoolFileName: s.talentPoolFileName,
+              selectedMatchId: s.selectedMatchId,
             },
           };
         },
@@ -1168,7 +1170,37 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
     [],
   );
 
-  const { messages, sendMessage, status, error } = useChat({ transport });
+  const handleToolCall: ChatOnToolCallCallback<UIMessage> = ({ toolCall }) => {
+    if (toolCall.toolName !== "createSearchRequest") return;
+
+    const input = toolCall.input as { searchRequest?: unknown };
+    const searchRequest = typeof input.searchRequest === "string" ? input.searchRequest.trim() : "";
+    if (!searchRequest) return;
+
+    setSession((current) => {
+      if (current.candidateRecords.length === 0) return current;
+
+      const searchCriteria = interpretSearchCriteria(searchRequest);
+      const shortlist = buildShortlist(current.candidateRecords, searchCriteria);
+
+      return {
+        ...current,
+        searchRequest,
+        searchCriteria,
+        shortlist,
+        selectedMatchId: null,
+      };
+    });
+
+    void addToolOutputRef.current?.({
+      tool: "createSearchRequest",
+      toolCallId: toolCall.toolCallId,
+      output: { applied: true },
+    });
+  };
+
+  const { messages, sendMessage, status, error, addToolOutput } = useChat({ transport, onToolCall: handleToolCall });
+  addToolOutputRef.current = addToolOutput;
 
   function getMessageText(message: { parts: unknown[] }): string {
     return (message.parts as { type: string; text?: string }[])
