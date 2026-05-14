@@ -22,6 +22,31 @@ type AppSession = {
   copilotTranscript: { speaker: "recruiter" | "copilot"; text: string }[];
 };
 
+type CopilotErrorKind = "client" | "server" | "offline";
+
+type CopilotErrorState = {
+  kind: CopilotErrorKind;
+  message: string;
+  status?: number;
+};
+
+type CopilotErrorPayload = {
+  error?: {
+    category?: unknown;
+    message?: unknown;
+  };
+};
+
+class CopilotApiError extends Error {
+  state: CopilotErrorState;
+
+  constructor(state: CopilotErrorState) {
+    super(state.message);
+    this.name = "CopilotApiError";
+    this.state = state;
+  }
+}
+
 type AppSessionContextValue = {
   session: AppSession;
   setSession: Dispatch<SetStateAction<AppSession>>;
@@ -60,6 +85,53 @@ function useAppSession() {
   }
 
   return value;
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isCopilotApiError(error: unknown): error is CopilotApiError {
+  return error instanceof CopilotApiError;
+}
+
+function getUiMessageText(message: { parts: unknown[] }): string {
+  return (message.parts as { type: string; text?: string }[])
+    .filter((p) => p.type === "text" && p.text)
+    .map((p) => p.text)
+    .join("");
+}
+
+function classifyCopilotError(error: unknown): CopilotErrorState {
+  if (isCopilotApiError(error)) {
+    return error.state;
+  }
+
+  return {
+    kind: "offline",
+    message: "Copilot is unreachable. Check that the Intelligence Layer server is running, then retry.",
+  };
+}
+
+async function parseCopilotErrorResponse(response: Response): Promise<CopilotErrorState> {
+  const payload = (await response.clone().json().catch(() => null)) as CopilotErrorPayload | null;
+  const errorObject = payload?.error;
+  const category = isObject(errorObject) ? errorObject.category : undefined;
+  const safeMessage = typeof payload?.error?.message === "string" ? payload.error.message : undefined;
+
+  if (category === "validation_error" || (response.status >= 400 && response.status < 500)) {
+    return {
+      kind: "client",
+      status: response.status,
+      message: safeMessage || "Copilot could not process that request. Try rephrasing and sending again.",
+    };
+  }
+
+  return {
+    kind: "server",
+    status: response.status,
+    message: safeMessage || "Copilot is temporarily unavailable. Retry in a few moments.",
+  };
 }
 
 function RootLayout() {
@@ -184,21 +256,32 @@ function NavLink({ to, label, icon, compact = false }: { to: "/" | "/talent-pool
 
 function HomeRoute() {
   const { session } = useAppSession();
+  const [copilotError, setCopilotError] = useState<CopilotErrorState | null>(null);
   const hasTalentPool = session.candidateRecordCount > 0;
   const hasSearchRequest = !!session.searchRequest;
 
+  if (copilotError?.kind === "server") {
+    return <CopilotServerErrorHomeView error={copilotError} onRetry={() => setCopilotError(null)} />;
+  }
+
   if (!hasTalentPool) {
-    return <EmptyHomeView />;
+    return <EmptyHomeView copilotError={copilotError} onCopilotError={setCopilotError} onClearCopilotError={() => setCopilotError(null)} />;
   }
 
   if (!hasSearchRequest) {
-    return <DataReadyHomeView />;
+    return <DataReadyHomeView copilotError={copilotError} onCopilotError={setCopilotError} onClearCopilotError={() => setCopilotError(null)} />;
   }
 
-  return <ActiveHomeView />;
+  return <ActiveHomeView copilotError={copilotError} onCopilotError={setCopilotError} onClearCopilotError={() => setCopilotError(null)} />;
 }
 
-function EmptyHomeView() {
+type HomeCopilotProps = {
+  copilotError: CopilotErrorState | null;
+  onCopilotError: (error: CopilotErrorState) => void;
+  onClearCopilotError: () => void;
+};
+
+function EmptyHomeView({ copilotError, onCopilotError, onClearCopilotError }: HomeCopilotProps) {
   const { session } = useAppSession();
 
   return (
@@ -278,12 +361,12 @@ function EmptyHomeView() {
         </div>
       </section>
 
-      <CopilotPanel mode="empty" />
+      <CopilotPanel mode="empty" copilotError={copilotError} onCopilotError={onCopilotError} onClearCopilotError={onClearCopilotError} />
     </div>
   );
 }
 
-function DataReadyHomeView() {
+function DataReadyHomeView({ copilotError, onCopilotError, onClearCopilotError }: HomeCopilotProps) {
   const { session } = useAppSession();
 
   return (
@@ -325,12 +408,12 @@ function DataReadyHomeView() {
         </div>
       </section>
 
-      <CopilotPanel mode="active" />
+      <CopilotPanel mode="active" copilotError={copilotError} onCopilotError={onCopilotError} onClearCopilotError={onClearCopilotError} />
     </div>
   );
 }
 
-function ActiveHomeView() {
+function ActiveHomeView({ copilotError, onCopilotError, onClearCopilotError }: HomeCopilotProps) {
   const { session, setSession } = useAppSession();
   const [draftSearchRequest, setDraftSearchRequest] = useState(session.searchRequest);
 
@@ -379,7 +462,47 @@ function ActiveHomeView() {
         <ShortlistSection matches={session.shortlist} />
       </div>
 
-      <CopilotPanel mode="active" />
+      <CopilotPanel mode="active" copilotError={copilotError} onCopilotError={onCopilotError} onClearCopilotError={onClearCopilotError} />
+    </div>
+  );
+}
+
+function CopilotServerErrorHomeView({ error, onRetry }: { error: CopilotErrorState; onRetry: () => void }) {
+  return (
+    <div className="flex min-h-[calc(100vh-8rem)] flex-col xl:flex-row">
+      <section className="relative flex flex-1 items-center justify-center overflow-hidden px-6 py-16 text-center">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.035]">
+          <span className="material-symbols-outlined text-[42vw] font-light">database</span>
+        </div>
+        <div className="relative z-10 max-w-2xl">
+          <div className="mb-8 inline-flex size-24 items-center justify-center rounded-full border border-risk/20 bg-risk-soft/40 text-risk">
+            <span className="material-symbols-outlined text-[56px]">cloud_off</span>
+          </div>
+          <h2 className="font-serif text-[40px] font-bold leading-[48px] tracking-[-0.02em] text-slate">Copilot is temporarily unavailable</h2>
+          <p className="mx-auto mt-4 max-w-xl text-lg leading-8 text-muted">
+            The Intelligence Layer returned a server-side error, so Copilot chat is paused. Your in-memory Talent Pool, Search Criteria, Matches, and Shortlist remain unchanged.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <button type="button" className="inline-flex items-center gap-2 rounded-lg bg-slate-strong px-8 py-3 text-sm font-bold text-white transition hover:bg-slate" onClick={onRetry}>
+              <span className="material-symbols-outlined text-[18px]">refresh</span>
+              Retry Copilot
+            </button>
+            <Link to="/talent-pool" className="rounded-lg border border-outline-soft px-8 py-3 text-sm font-bold text-slate transition hover:bg-surface-high">
+              Review Talent Pool
+            </Link>
+          </div>
+          <div className="mx-auto mt-12 max-w-md border-t border-outline-soft/30 pt-6 text-left">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-soft">Technical details</p>
+            <div className="mt-3 rounded-lg border border-outline-soft/20 bg-surface-high/40 p-4 font-mono text-[11px] leading-5 text-muted">
+              <div>Category: server_error</div>
+              <div>Status: {error.status || "5xx"}</div>
+              <div>Client action: Retry after a moment.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <CopilotPanel mode="active" copilotError={error} onCopilotError={() => undefined} onClearCopilotError={onRetry} />
     </div>
   );
 }
@@ -1136,7 +1259,70 @@ function getCandidateRecordLabel(match: Match) {
   return match.candidateRecord.canonicalFields.name || `Candidate Record ${match.candidateRecord.rowNumber}`;
 }
 
-function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
+function CopilotErrorMessage({ error, onRetry }: { error: CopilotErrorState; onRetry: () => void }) {
+  if (error.kind === "client") {
+    return (
+      <div className="flex max-w-[90%] gap-3">
+        <div className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full border border-risk/20 bg-risk-soft text-risk">
+          <span className="material-symbols-outlined text-[15px]">error</span>
+        </div>
+        <div className="rounded-2xl rounded-tl-sm border border-risk/10 bg-risk-soft p-4 text-sm leading-6 text-risk shadow-sm">
+          <p className="font-semibold">I couldn't process that Copilot request.</p>
+          <p className="mt-1 opacity-90">
+            {error.message} Try rephrasing it as a clear Search Request, for example: <span className="rounded border border-risk/10 bg-white/35 px-1 py-0.5 font-mono text-[12px]">Senior React profiles with fintech experience</span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error.kind === "offline") {
+    return (
+      <div className="rounded-lg border border-outline-soft/30 bg-surface-high px-4 py-3 text-sm leading-6 text-muted shadow-sm" role="alert">
+        <div className="flex items-start gap-3">
+          <span className="material-symbols-outlined shrink-0 text-[20px] text-secondary-strong">wifi_off</span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-slate">Copilot is offline. Reconnecting...</p>
+            <p className="mt-1">{error.message}</p>
+          </div>
+          <button type="button" className="shrink-0 text-xs font-bold uppercase tracking-[0.12em] text-slate hover:underline" onClick={onRetry}>
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative overflow-hidden rounded-lg border border-risk/20 bg-risk-soft/40 px-4 py-4 text-sm leading-6 text-risk shadow-sm" role="alert">
+      <div className="flex items-start gap-3">
+        <span className="material-symbols-outlined shrink-0 text-[20px]">warning</span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold">Intelligence Layer unavailable</p>
+          <p className="mt-1 text-ink">{error.message}</p>
+          <div className="mt-3 flex items-center justify-between border-t border-risk/10 pt-3">
+            <span className="text-xs font-semibold text-risk/80">Status {error.status || "5xx"}</span>
+            <button type="button" className="text-sm font-bold text-risk hover:underline" onClick={onRetry}>
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CopilotPanel({
+  mode,
+  copilotError,
+  onCopilotError,
+  onClearCopilotError,
+}: {
+  mode: "empty" | "active";
+  copilotError: CopilotErrorState | null;
+  onCopilotError: (error: CopilotErrorState) => void;
+  onClearCopilotError: () => void;
+}) {
   const { session, setSession } = useAppSession();
   const router = useRouter();
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -1148,11 +1334,33 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
     () =>
       new DefaultChatTransport({
         api: "/api/chat",
+        fetch: async (input, init) => {
+          let response: Response;
+
+          try {
+            response = await fetch(input, init);
+          } catch {
+            throw new CopilotApiError({
+              kind: "offline",
+              message: "Copilot is unreachable. Check that the Intelligence Layer server is running, then retry.",
+            });
+          }
+
+          if (!response.ok) {
+            throw new CopilotApiError(await parseCopilotErrorResponse(response));
+          }
+
+          return response;
+        },
         prepareSendMessagesRequest: (options) => {
           const s = sessionRef.current;
           return {
             ...options,
             body: {
+              messages: options.messages.map((message) => ({
+                role: message.role,
+                content: getUiMessageText(message),
+              })),
               sessionContext: {
                 searchRequest: s.searchRequest,
                 searchCriteria: s.searchCriteria,
@@ -1168,18 +1376,15 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
     [],
   );
 
-  const { messages, sendMessage, status, error } = useChat({ transport });
-
-  function getMessageText(message: { parts: unknown[] }): string {
-    return (message.parts as { type: string; text?: string }[])
-      .filter((p) => p.type === "text" && p.text)
-      .map((p) => p.text)
-      .join("");
-  }
+  const { messages, sendMessage, status } = useChat({
+    transport,
+    onError: (chatError) => onCopilotError(classifyCopilotError(chatError)),
+  });
 
   function handleSend() {
     const text = input.trim();
     if (!text) return;
+    onClearCopilotError();
     sendMessage({ text });
     setInput("");
   }
@@ -1196,6 +1401,16 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
   }, [messages]);
 
   const isStreaming = status === "streaming" || status === "submitted";
+  const visibleCopilotError = copilotError;
+  const disablesComposer = isStreaming || visibleCopilotError?.kind === "offline" || visibleCopilotError?.kind === "server";
+  const composerPlaceholder =
+    visibleCopilotError?.kind === "offline"
+      ? "Waiting for connection..."
+      : visibleCopilotError?.kind === "server"
+        ? "Copilot is temporarily unavailable..."
+        : visibleCopilotError?.kind === "client"
+          ? "Type a revised request..."
+          : "Describe the role you're looking for...";
 
   if (mode === "empty") {
     return (
@@ -1258,9 +1473,9 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
           <div>
             <h3 className="font-serif text-xl font-semibold">Copilot</h3>
             <div className="mt-0.5 flex items-center gap-1.5">
-              <span className={`size-2 rounded-full ${isStreaming ? "bg-evidence" : "bg-muted-soft"}`} />
+              <span className={`size-2 rounded-full ${isStreaming ? "bg-evidence" : visibleCopilotError ? "bg-risk" : "bg-muted-soft"}`} />
               <span className="text-xs font-semibold text-muted">
-                {isStreaming ? "Thinking" : error ? "Error" : "Ready"}
+                {isStreaming ? "Thinking" : visibleCopilotError?.kind === "offline" ? "Offline" : visibleCopilotError ? "Needs attention" : "Ready"}
               </span>
             </div>
           </div>
@@ -1285,7 +1500,7 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
         ) : (
           messages.filter((m) => m.role === "user" || m.role === "assistant").map((message) => {
             const isUser = message.role === "user";
-            const text = getMessageText(message);
+            const text = getUiMessageText(message);
             if (!text) return null;
             return (
               <div key={message.id} className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
@@ -1313,12 +1528,7 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
           </div>
         ) : null}
 
-        {error ? (
-          <div className="flex items-start gap-2 rounded-lg border border-risk-soft bg-risk-soft/50 px-4 py-3 text-sm leading-6 text-risk">
-            <span className="material-symbols-outlined shrink-0 text-[16px]">error</span>
-            <span>{error.message || "Connection error. Check that the server is running and OPENAI_API_KEY is set."}</span>
-          </div>
-        ) : null}
+        {visibleCopilotError ? <CopilotErrorMessage error={visibleCopilotError} onRetry={onClearCopilotError} /> : null}
 
         <div ref={chatEndRef} />
       </div>
@@ -1327,12 +1537,12 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
         <div className="flex items-center rounded-xl border border-outline-soft/30 bg-surface-lowest shadow-sm transition-all focus-within:border-slate focus-within:ring-1 focus-within:ring-slate/20">
           <textarea
             className="custom-scrollbar w-full resize-none border-none bg-transparent px-4 py-3 text-sm text-ink outline-none placeholder:text-muted-soft"
-            placeholder="Describe the role you're looking for..."
+            placeholder={composerPlaceholder}
             rows={2}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isStreaming}
+            disabled={disablesComposer}
           />
           <div className="flex shrink-0 items-center gap-1 pr-2 pb-2 self-end">
             <button
@@ -1346,7 +1556,7 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
             <button
               type="button"
               className="flex size-8 items-center justify-center rounded-full bg-earth text-white shadow-sm transition hover:bg-earth-strong disabled:opacity-50"
-              disabled={isStreaming || !input.trim()}
+              disabled={disablesComposer || !input.trim()}
               onClick={handleSend}
               aria-label="Send message"
             >
@@ -1355,7 +1565,15 @@ function CopilotPanel({ mode }: { mode: "empty" | "active" }) {
           </div>
         </div>
         <p className="mt-2 px-1 text-xs text-muted-soft">
-          {isStreaming ? "Copilot is responding..." : "Enter to send, Shift+Enter for new line"}
+          {isStreaming
+            ? "Copilot is responding..."
+            : visibleCopilotError?.kind === "offline"
+              ? "Chat is read-only until the Intelligence Layer reconnects."
+              : visibleCopilotError?.kind === "server"
+                ? "Retry Copilot before sending another message."
+                : visibleCopilotError?.kind === "client"
+                  ? "Revise the request and send again."
+                  : "Enter to send, Shift+Enter for new line"}
         </p>
       </div>
     </aside>
