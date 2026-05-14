@@ -9,7 +9,9 @@
     "pnpm": ">=10"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -n client,server -c cyan,magenta \"vite\" \"tsx server/index.ts\"",
+    "dev:client": "vite",
+    "dev:server": "tsx server/index.ts",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "check": "tsc --noEmit && node --check src/csv-candidate-records.js && node --check src/search-criteria.js && node --check src/shortlist-matches.js && node --check src/message-draft.js && node --check scripts/check-csv-parser.js && node --check scripts/check-search-criteria.js && node --check scripts/check-shortlist-matches.js && node --check scripts/check-message-draft.js",
@@ -19,17 +21,25 @@
     "check:message-draft": "node scripts/check-message-draft.js"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.63",
+    "@ai-sdk/react": "^3.0.184",
+    "@hono/node-server": "^2.0.2",
     "@tanstack/react-router": "^1.169.2",
     "@tanstack/react-table": "^8.21.3",
+    "ai": "^6.0.182",
+    "hono": "^4.12.18",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
     "tailwindcss": "^4.3.0",
+    "tsx": "^4.21.1",
     "typescript": "^6.0.3",
     "vite": "^8.0.12"
   }
