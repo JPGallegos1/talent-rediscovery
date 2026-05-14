@@ -1,5 +1,5 @@
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, isTextUIPart } from "ai";
+import { DefaultChatTransport, isTextUIPart, type ChatAddToolOutputFunction, type ChatOnToolCallCallback, type UIMessage } from "ai";
 import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvider, useRouter } from "@tanstack/react-router";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
@@ -416,6 +416,10 @@ function DataReadyHomeView({ copilotError, onCopilotError, onClearCopilotError }
 function ActiveHomeView({ copilotError, onCopilotError, onClearCopilotError }: HomeCopilotProps) {
   const { session, setSession } = useAppSession();
   const [draftSearchRequest, setDraftSearchRequest] = useState(session.searchRequest);
+
+  useEffect(() => {
+    setDraftSearchRequest(session.searchRequest);
+  }, [session.searchRequest]);
 
   function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1328,6 +1332,7 @@ function CopilotPanel({
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const sessionRef = useRef(session);
+  const addToolOutputRef = useRef<ChatAddToolOutputFunction<UIMessage> | null>(null);
   sessionRef.current = session;
 
   const transport = useMemo(

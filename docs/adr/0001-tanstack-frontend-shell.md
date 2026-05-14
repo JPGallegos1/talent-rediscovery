@@ -30,6 +30,6 @@ OpenAI models should be configurable through environment variables. Chat Copilot
 
 Checks should remain deterministic by default. Domain checks for CSV parsing, Search Criteria interpretation, Shortlist matching, and message drafts should be migrated to TypeScript. Intelligence Layer checks should validate the shared action contract, compact Shortlist context, prompt safety constraints, and absence of prohibited tools without requiring `OPENAI_API_KEY`. Live OpenAI checks may exist as explicit optional commands only.
 
-The code migration should wait for the Stitch-generated UI direction. The current documentation decision is to use Stitch output as the visual basis for the new TanStack + Tailwind frontend rather than porting the current framework-free UI directly.
+The code migration to the Stitch-generated UI direction is now complete. The Stitch output has been used as the visual basis for the TanStack + Tailwind frontend across all routes (`/`, `/talent-pool`, `/matches/$matchId`). Future routes or UI changes should continue referencing `docs/design/stitch/` and `docs/design/stitch-guardrails.md` for visual fidelity expectations and domain corrections.
 
 Tailwind should be used utilities-first in the first migration. Extract local components only when repetition becomes concrete, such as `Button`, `Card`, `Panel`, `Badge`, or `MatchCard`. Do not create a formal design system before the Stitch direction and product UI patterns have stabilized.

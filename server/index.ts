@@ -1,4 +1,4 @@
-import { streamText } from "ai";
+import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
