@@ -1,4 +1,4 @@
-import { streamText } from "ai";
+import { convertToModelMessages, streamText, type UIMessage } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -17,7 +17,7 @@ app.use("/api/*", cors());
 
 app.post("/api/chat", async (c) => {
   const { messages, sessionContext } = await c.req.json<{
-    messages: { role: string; content: string }[];
+    messages: UIMessage[];
     sessionContext: {
       searchRequest: string | null;
       searchCriteria: Record<string, unknown> | null;
@@ -28,19 +28,15 @@ app.post("/api/chat", async (c) => {
     };
   }>();
 
-  const systemMessage = {
-    role: "system" as const,
-    content: buildSystemPrompt(sessionContext),
-  };
-
   const result = streamText({
     model: openai(chatModel),
-    messages: [systemMessage, ...messages],
+    system: buildSystemPrompt(sessionContext),
+    messages: await convertToModelMessages(messages),
     tools: intelligenceActionTools,
     maxSteps: 5,
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 });
 
 app.get("/api/health", (c) => {
