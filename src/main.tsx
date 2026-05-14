@@ -185,9 +185,14 @@ function NavLink({ to, label, icon, compact = false }: { to: "/" | "/talent-pool
 function HomeRoute() {
   const { session } = useAppSession();
   const hasTalentPool = session.candidateRecordCount > 0;
+  const hasSearchRequest = !!session.searchRequest;
 
   if (!hasTalentPool) {
     return <EmptyHomeView />;
+  }
+
+  if (!hasSearchRequest) {
+    return <DataReadyHomeView />;
   }
 
   return <ActiveHomeView />;
@@ -278,21 +283,61 @@ function EmptyHomeView() {
   );
 }
 
+function DataReadyHomeView() {
+  const { session } = useAppSession();
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+      <section className="flex flex-1 flex-col overflow-y-auto px-0 lg:px-10">
+        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center">
+          <div className="relative overflow-hidden rounded-xl border border-outline-soft/20 bg-surface-lowest p-8 text-center shadow-stitch-card">
+            <div className="flex flex-col items-center">
+              <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-secondary-soft text-secondary-strong shadow-inner">
+                <span className="material-symbols-outlined text-[32px]">database</span>
+              </div>
+              <h3 className="font-serif text-[40px] font-bold leading-10 tracking-[-0.02em] text-slate">
+                {session.candidateRecordCount}
+              </h3>
+              <p className="mt-2 font-serif text-xl font-semibold text-muted">records ready to search</p>
+              <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-muted">
+                Your Candidate Records have been parsed and normalized. Describe the profile you need using the Copilot on the right.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-3 gap-4">
+            <div className="rounded-lg border border-outline-soft/10 bg-surface-low p-4">
+              <span className="material-symbols-outlined mb-2 text-earth">auto_awesome</span>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted">Normalized</p>
+              <p className="mt-1 font-serif text-2xl font-semibold text-slate">{session.candidateRecordCount}</p>
+            </div>
+            <div className="rounded-lg border border-outline-soft/10 bg-surface-low p-4">
+              <span className="material-symbols-outlined mb-2 text-earth">folder_open</span>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted">File</p>
+              <p className="mt-1 truncate text-sm font-semibold text-slate">{session.talentPoolFileName || "CSV upload"}</p>
+            </div>
+            <div className="rounded-lg border border-outline-soft/10 bg-surface-low p-4">
+              <span className="material-symbols-outlined mb-2 text-earth">history</span>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted">Session</p>
+              <p className="mt-1 text-sm font-semibold text-slate">In-memory only</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <CopilotPanel mode="active" />
+    </div>
+  );
+}
+
 function ActiveHomeView() {
   const { session, setSession } = useAppSession();
   const [draftSearchRequest, setDraftSearchRequest] = useState(session.searchRequest);
-  const [searchStatus, setSearchStatus] = useState("Describe the profile you need, then run a Search Request.");
-  const hasTalentPool = session.candidateRecordCount > 0;
 
   function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    const searchRequest = draftSearchRequest.trim();
-
-    if (!searchRequest) {
-      setSearchStatus("Enter a Search Request before running the search.");
-      return;
-    }
+    const searchRequest = draftSearchRequest.trim() || session.searchRequest;
+    if (!searchRequest) return;
 
     const searchCriteria = interpretSearchCriteria(searchRequest);
     const shortlist = buildShortlist(session.candidateRecords, searchCriteria);
@@ -304,7 +349,6 @@ function ActiveHomeView() {
       shortlist,
       selectedMatchId: null,
     }));
-    setSearchStatus(`Search Request run. Returned ${shortlist.length} Matches in the Shortlist.`);
   }
 
   return (
@@ -325,8 +369,8 @@ function ActiveHomeView() {
         <SearchRequestForm
           draftSearchRequest={draftSearchRequest}
           onDraftChange={setDraftSearchRequest}
-          searchStatus={searchStatus}
-          hasTalentPool={hasTalentPool}
+          searchStatus="Refine your Search Request and re-run, or use the Copilot for follow-up."
+          hasTalentPool={true}
           onSubmit={handleSearchSubmit}
         />
 
