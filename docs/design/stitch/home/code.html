@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RecruitAI - Copilot Onboarding</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#faddcf",
+                        "surface-variant": "#e4e2dc",
+                        "surface": "#fbf9f3",
+                        "primary-container": "#3f4e4f",
+                        "error": "#ba1a1a",
+                        "secondary": "#595f60",
+                        "tertiary": "#433128",
+                        "surface-container-highest": "#e4e2dc",
+                        "surface-bright": "#fbf9f3",
+                        "background": "#fbf9f3",
+                        "on-secondary-fixed-variant": "#424848",
+                        "inverse-on-surface": "#f3f1eb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed": "#0f1e1f",
+                        "on-primary-container": "#aebfc0",
+                        "on-tertiary-fixed-variant": "#564339",
+                        "on-background": "#1b1c18",
+                        "on-surface": "#1b1c18",
+                        "on-secondary-fixed": "#171d1d",
+                        "primary-fixed": "#d5e6e6",
+                        "inverse-primary": "#b9caca",
+                        "error-container": "#ffdad6",
+                        "on-error-container": "#93000a",
+                        "inverse-surface": "#30312d",
+                        "surface-container-low": "#f6f3ed",
+                        "secondary-container": "#dee4e3",
+                        "primary-fixed-dim": "#b9caca",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#dee4e3",
+                        "surface-tint": "#526162",
+                        "on-tertiary-container": "#d1b6a9",
+                        "tertiary-container": "#5b473d",
+                        "surface-dim": "#dcdad4",
+                        "outline-variant": "#c2c7c7",
+                        "surface-container": "#f0eee8",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#c2c8c7",
+                        "outline": "#737878",
+                        "on-secondary-container": "#5f6566",
+                        "on-tertiary": "#ffffff",
+                        "primary": "#293738",
+                        "tertiary-fixed-dim": "#ddc1b4",
+                        "on-primary-fixed-variant": "#3a494a",
+                        "on-tertiary-fixed": "#271810",
+                        "on-surface-variant": "#424848",
+                        "surface-container-high": "#eae8e2",
+                        "on-secondary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "stack-lg": "48px",
+                        "unit": "8px",
+                        "stack-sm": "12px",
+                        "gutter": "24px",
+                        "container-padding": "32px",
+                        "stack-md": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Noto Serif"],
+                        "label-md": ["Plus Jakarta Sans"],
+                        "headline-md": ["Noto Serif"],
+                        "headline-xl": ["Noto Serif"],
+                        "body-sm": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Noto Serif"],
+                        "headline-lg": ["Noto Serif"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "label-sm": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-xl": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "500" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex antialiased">
+<!-- SideNavBar -->
+<nav class="hidden md:flex fixed left-0 top-0 h-full w-[280px] bg-surface-container border-r border-outline-variant/10 flex-col py-gutter px-4 z-20">
+<!-- Brand -->
+<div class="flex items-center gap-3 px-4 mb-stack-lg">
+<div class="w-10 h-10 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined">radar</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary">RecruitAI</h1>
+<p class="font-label-md text-label-md text-on-surface-variant opacity-80">Talent Rediscovery</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex flex-col gap-2 flex-grow">
+<a class="flex items-center gap-3 py-3 text-on-surface-variant font-medium pl-4 rounded-lg hover:bg-surface-variant/50 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 py-3 text-on-surface-variant font-medium pl-4 rounded-lg hover:bg-surface-variant/50 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-label-md text-label-md">Talent Pool</span>
+</a>
+<a class="flex items-center gap-3 py-3 text-on-surface-variant font-medium pl-4 rounded-lg hover:bg-surface-variant/50 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">verified</span>
+<span class="font-label-md text-label-md">Matches</span>
+</a>
+<a class="flex items-center gap-3 py-3 text-primary font-bold border-l-4 border-tertiary pl-3 bg-surface-variant/30 rounded-r-lg opacity-80 scale-95 transition-all" href="#">
+<span class="material-symbols-outlined fill">psychology</span>
+<span class="font-label-md text-label-md">Copilot</span>
+</a>
+<a class="flex items-center gap-3 py-3 text-on-surface-variant font-medium pl-4 rounded-lg hover:bg-surface-variant/50 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</div>
+<!-- CTA & Profile -->
+<div class="mt-auto flex flex-col gap-4">
+<button class="w-full bg-primary-container text-on-primary-container font-label-md text-label-md py-3 px-4 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">upload_file</span>
+                Upload Talent Pool
+            </button>
+<div class="flex items-center gap-3 px-4 pt-4 border-t border-outline-variant/20">
+<img alt="Recruiter Profile" class="w-10 h-10 rounded-full object-cover border border-outline-variant/30" data-alt="A professional headshot of a corporate recruiter in a bright, modern office setting. She is wearing a dark slate blazer over a crisp white shirt. The lighting is soft and natural, casting gentle shadows. The mood is confident and welcoming, aligning with a premium corporate aesthetic. The background is slightly blurred, emphasizing the subject." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQLPXCjMJJJmdQEiCWc_VdG9TvKIhfX4tnrRpeXtpPfh0E6ZA0hY-LuJ_oJCCi-otY6iy_aF7ExrIXMP1kZZzgkqMU1dLaSTJVzfZRfyh5DHEfXFBKRttaj10YY6pFKY8ioJcm5-wNIthBlw7k7Y2-ZlDyUBvnplK8HnvPSTXIVkTFM-gULqGNgzRDQCElmgGg5xYXHbLIEbd9G8nq2GS9a5_5kHvVySqc3eJH6vFiY5bqeD7J_19OkvFtIN0SZ-y9c6R29zNuHe--"/>
+<div>
+<p class="font-label-md text-label-md text-primary">Sarah Jenkins</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Lead Recruiter</p>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col md:ml-[280px] min-h-screen">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center h-16 px-gutter bg-surface/80 backdrop-blur-md border-b border-outline-variant/10 shadow-sm sticky top-0 z-10 w-full">
+<div class="flex-1 flex items-center">
+<div class="relative w-full max-w-md hidden md:flex items-center">
+<span class="material-symbols-outlined absolute left-3 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full bg-surface-container-lowest border-b border-outline-variant/30 px-10 py-2 font-body-sm text-body-sm text-on-surface placeholder:text-on-surface-variant/60 focus:border-primary focus:ring-0 focus:outline-none transition-colors rounded-t-sm" placeholder="Search parameters, skills, or candidate names..." type="text"/>
+</div>
+<span class="md:hidden font-headline-sm text-headline-sm font-bold text-primary">RecruitAI</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors focus:ring-2 focus:ring-primary/20 outline-none rounded-full p-1">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors focus:ring-2 focus:ring-primary/20 outline-none rounded-full p-1">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<img alt="User avatar" class="w-8 h-8 rounded-full md:hidden object-cover" data-alt="A professional headshot of a corporate recruiter in a bright, modern office setting. She is wearing a dark slate blazer over a crisp white shirt. The lighting is soft and natural, casting gentle shadows. The mood is confident and welcoming, aligning with a premium corporate aesthetic. The background is slightly blurred, emphasizing the subject." src="https://lh3.googleusercontent.com/aida-public/AB6AXuADw0Q5JXN0jWJs02icEIIElAuwkvQ3ChBdpTQNKsjoJjSnFTqvQB5HYqI9ubFWFTK_fWTvr-eEQBhwJIoB53c6Os3Vw6J8kF5eSbb9TxL8vt9ONkDdHOVptys5aZHQ_q89cSsfA6UpBeWl4Reo2Rr0dWpGT76S08NgKzdn-7-h0cG59v-DDjZaf0X0-4ygN3JROCv1LVEHkHREJmjHAa8-6B_NHrSSeQVSmEZFf2tc8BUmM9MwItM3lQ7GC2_cE6it0CTH86i6T1IJ"/>
+</div>
+</header>
+<!-- Workspace Layout -->
+<main class="flex-1 flex flex-col lg:flex-row bg-background">
+<!-- Left Canvas: Empty State Hero -->
+<section class="flex-1 p-gutter lg:p-container-padding flex flex-col">
+<div class="max-w-3xl mx-auto w-full flex-1 flex flex-col justify-center">
+<!-- Welcome Hero -->
+<div class="text-center mb-stack-lg">
+<div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-surface-container-low mb-6 shadow-[0px_4px_20px_rgba(63,78,79,0.05)]">
+<span class="material-symbols-outlined text-[40px] text-tertiary">database_off</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-primary mb-4">Your Talent Pool is Empty</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mx-auto">
+                            Copilot needs data to work its magic. Upload your existing candidate database as a CSV to unlock deep talent rediscovery, evidence-grounded matching, and semantic search.
+                        </p>
+</div>
+<!-- CTA Area -->
+<div class="flex flex-col items-center gap-6 mb-stack-lg">
+<button class="bg-primary-container text-on-primary-container font-label-md text-label-md py-4 px-8 rounded-xl flex items-center gap-3 hover:bg-primary-container/90 transition-all shadow-[0px_4px_20px_rgba(63,78,79,0.1)] hover:shadow-[0px_8px_30px_rgba(63,78,79,0.15)] transform hover:-translate-y-0.5">
+<span class="material-symbols-outlined text-[24px]">cloud_upload</span>
+<span class="text-[16px]">Upload Talent Pool (CSV)</span>
+</button>
+<div class="flex items-center gap-2 text-on-surface-variant/70 font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[16px]">lock</span>
+<span>Your data is processed in-memory only and remains strictly confidential.</span>
+</div>
+</div>
+<!-- Steps Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-stack-lg">
+<!-- Step 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/10 shadow-[0px_4px_20px_rgba(63,78,79,0.02)] relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-24 h-24 bg-surface-variant/20 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary font-headline-sm text-headline-sm mb-4 relative z-10">1</div>
+<h3 class="font-headline-sm text-headline-sm text-primary mb-2 relative z-10">Upload Data</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant relative z-10">Securely import your historical candidate CSV. Copilot maps the fields automatically.</p>
+</div>
+<!-- Step 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/10 shadow-[0px_4px_20px_rgba(63,78,79,0.02)] relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-24 h-24 bg-surface-variant/20 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary font-headline-sm text-headline-sm mb-4 relative z-10">2</div>
+<h3 class="font-headline-sm text-headline-sm text-primary mb-2 relative z-10">Describe Need</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant relative z-10">Chat with Copilot in plain English to describe the role, required skills, and cultural fit.</p>
+</div>
+<!-- Step 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/10 shadow-[0px_4px_20px_rgba(63,78,79,0.02)] relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-24 h-24 bg-surface-variant/20 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+<div class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary font-headline-sm text-headline-sm mb-4 relative z-10">3</div>
+<h3 class="font-headline-sm text-headline-sm text-primary mb-2 relative z-10">Review Matches</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant relative z-10">Get a ranked shortlist of hidden gems, complete with evidence-based reasoning.</p>
+</div>
+</div>
+<!-- Educational Links -->
+<div class="flex justify-center gap-6 pt-6 border-t border-outline-variant/10">
+<a class="flex items-center gap-2 text-primary font-label-md text-label-md hover:underline decoration-primary/30 underline-offset-4" href="#">
+<span class="material-symbols-outlined text-[18px]">menu_book</span>
+                            Learn about Talent Rediscovery
+                        </a>
+<a class="flex items-center gap-2 text-primary font-label-md text-label-md hover:underline decoration-primary/30 underline-offset-4" href="#">
+<span class="material-symbols-outlined text-[18px]">policy</span>
+                            Privacy &amp; Security Policies
+                        </a>
+</div>
+</div>
+</section>
+<!-- Right Panel: Copilot Chat -->
+<aside class="w-full lg:w-[400px] bg-surface-container-lowest border-l border-outline-variant/10 flex flex-col shadow-[-4px_0px_20px_rgba(63,78,79,0.02)] z-10">
+<!-- Chat Header -->
+<div class="p-6 border-b border-outline-variant/10 flex items-center justify-between bg-surface-bright">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
+<span class="material-symbols-outlined fill text-[20px]">psychology</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-primary">Copilot</h3>
+<div class="flex items-center gap-1.5 mt-0.5">
+<span class="w-2 h-2 rounded-full bg-on-primary-container"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Waiting for data</span>
+</div>
+</div>
+</div>
+<button class="text-on-surface-variant hover:bg-surface-variant/30 p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<!-- Chat Messages Area -->
+<div class="flex-1 p-6 overflow-y-auto bg-surface flex flex-col gap-6">
+<!-- System Welcome Message -->
+<div class="flex gap-4 max-w-[90%]">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center flex-shrink-0 mt-1">
+<span class="material-symbols-outlined text-[16px]">psychology</span>
+</div>
+<div class="flex flex-col gap-2">
+<div class="bg-surface-container-lowest border border-outline-variant/20 p-4 rounded-2xl rounded-tl-sm shadow-sm">
+<p class="font-body-md text-body-md text-on-surface">
+                                    Hello! I'm ready to help you rediscover talent. To get started, please upload your Talent Pool CSV file using the button below or in the sidebar.
+                                </p>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant/60 ml-1">Just now</span>
+</div>
+</div>
+</div>
+<!-- Chat Input Area (Disabled state visually) -->
+<div class="p-4 border-t border-outline-variant/10 bg-surface-bright">
+<div class="relative flex items-center opacity-60">
+<textarea class="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-xl pl-4 pr-12 py-3 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary/50 resize-none cursor-not-allowed shadow-inner" disabled="" placeholder="Upload data to start chatting..." rows="2"></textarea>
+<button class="absolute right-3 bottom-3 text-on-surface-variant p-1 rounded-full cursor-not-allowed" disabled="">
+<span class="material-symbols-outlined text-[20px]">send</span>
+</button>
+</div>
+<p class="text-center font-label-sm text-label-sm text-on-surface-variant/50 mt-3">
+                        Copilot requires a talent dataset to function.
+                    </p>
+</div>
+</aside>
+</main>
+</div>
+</body></html>
