@@ -1,4 +1,7 @@
 const skillDictionary = [
+  "Backend",
+  "Frontend",
+  "Full Stack",
   "React",
   "Node.js",
   "TypeScript",

@@ -3,7 +3,13 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { serve } from "@hono/node-server";
+import { existsSync } from "node:fs";
+import { loadEnvFile } from "node:process";
 import { buildSystemPrompt, intelligenceActionTools } from "./intelligence-handler.js";
+
+if (existsSync(".env")) {
+  loadEnvFile(".env");
+}
 
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,

@@ -33,7 +33,7 @@ function evaluateCandidateRecord(candidateRecord, searchCriteria) {
   let rank = 0;
 
   for (const skill of searchCriteria.skills ?? []) {
-    const matchedSkill = findSkillEvidence(canonicalFields.skills, skill);
+    const matchedSkill = findSkillEvidence(canonicalFields.skills, canonicalFields.currentRole, skill);
 
     if (matchedSkill) {
       rank += 3;
@@ -86,6 +86,7 @@ function evaluateCandidateRecord(candidateRecord, searchCriteria) {
     const seniorityEvidence = findSeniorityEvidence(canonicalFields);
 
     if (seniorityEvidence) {
+      rank += 2;
       addEvidence(evidence, "seniority", "Seniority", seniorityEvidence, searchCriteria.seniority);
       reasons.push(`Candidate Record has seniority evidence: ${seniorityEvidence}.`);
     } else {
@@ -132,8 +133,14 @@ function evaluateCandidateRecord(candidateRecord, searchCriteria) {
   };
 }
 
-function findSkillEvidence(skills, requestedSkill) {
+function findSkillEvidence(skills, currentRole, requestedSkill) {
   const requested = normalizeSkill(requestedSkill);
+  const role = normalizeSkill(currentRole);
+
+  if (role && (role.includes(requested) || requested.includes(role))) {
+    return currentRole;
+  }
+
   const index = skills.normalizedTerms.findIndex((term) => term === requested || term.includes(requested) || requested.includes(term));
 
   return index >= 0 ? skills.terms[index] : "";
