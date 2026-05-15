@@ -3,38 +3,38 @@ import { z } from "zod";
 
 export const intelligenceActionTools = {
   createSearchRequest: tool({
-    description: "Create a new Search Request from the recruiter's intent. Use this when the recruiter describes the profile they need.",
-    parameters: z.object({
+    description: "Create a Search Request from the recruiter's intent. Use this when the recruiter describes the profile they need so the client can evaluate Candidate Records and show a Shortlist when Matches exist.",
+    inputSchema: z.object({
       searchRequest: z.string().describe("The Search Request text describing the desired candidate profile."),
     }),
   }),
   navigateToMatch: tool({
     description: "Navigate to a specific Match's detail view. Use this when the recruiter asks to see a Match in detail.",
-    parameters: z.object({
+    inputSchema: z.object({
       matchId: z.string().describe("The matchId of the Match to navigate to (e.g. 'row-2')."),
     }),
   }),
   explainMatch: tool({
     description: "Explain why a specific Candidate Record was matched, showing reasons, evidence, gaps, and risks.",
-    parameters: z.object({
+    inputSchema: z.object({
       matchId: z.string().describe("The matchId of the Match to explain."),
     }),
   }),
   compareMatches: tool({
     description: "Compare two or more Matches side by side, highlighting differences in strengths, gaps, and risks.",
-    parameters: z.object({
+    inputSchema: z.object({
       matchIds: z.array(z.string()).describe("The matchIds of the Matches to compare (2 or more)."),
     }),
   }),
   requestMessageDraft: tool({
     description: "Generate an editable message draft for a Match. Only use when the Suggested Next Action is contact or recontact.",
-    parameters: z.object({
+    inputSchema: z.object({
       matchId: z.string().describe("The matchId of the Match to draft a message for."),
     }),
   }),
   showCurrentCriteria: tool({
     description: "Display the currently interpreted Search Criteria for transparency. Use when the recruiter asks what criteria were extracted.",
-    parameters: z.object({}),
+    inputSchema: z.object({}),
   }),
 } satisfies ToolSet;
 
@@ -64,7 +64,7 @@ export function buildSystemPrompt(context: {
     Suggested Next Action: ${m.suggestedNextAction}`;
           })
           .join("\n")
-      : "  No Shortlist yet. The recruiter must explicitly run a Search Request to create one.";
+      : "  No Shortlist yet. If the recruiter describes a role, create a Search Request so the client can evaluate Candidate Records and show Matches when evidence exists.";
 
   return `You are the Talent Rediscovery Copilot — a constrained Intelligence Layer for recruiters.
 
@@ -88,7 +88,7 @@ ${shortlistText}
 ## Allowed actions
 
 You may ONLY use these tools:
-1. createSearchRequest — propose and execute a new Search Request
+1. createSearchRequest — create a Search Request so the client can evaluate Candidate Records and show a Shortlist when Matches exist
 2. navigateToMatch — open a Match detail view
 3. explainMatch — explain a Match with evidence
 4. compareMatches — compare multiple Matches
@@ -102,6 +102,7 @@ You may ONLY use these tools:
 - You CANNOT send messages or outreach.
 - You CANNOT persist Talent Pools or Shortlists.
 - You CANNOT import external data.
+- You CANNOT manually edit Search Criteria; create a new Search Request instead when recruiter intent changes.
 - You MUST NOT introduce candidate information that is not grounded in the provided Shortlist context.
 - Match strength is qualitative: Strong, Possible, or Weak. Never use percentages.
 - Always use domain-correct language: "Talent Pool", "Candidate Record", "Search Request", "Match", "Shortlist", "Suggested Next Action".`;

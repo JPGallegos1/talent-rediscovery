@@ -1,6 +1,6 @@
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, isTextUIPart, type ChatAddToolOutputFunction, type ChatOnToolCallCallback, type UIMessage } from "ai";
-import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvider, useRouter } from "@tanstack/react-router";
+import { DefaultChatTransport, type ChatAddToolOutputFunction, type ChatOnToolCallCallback, type UIMessage } from "ai";
+import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvider } from "@tanstack/react-router";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 import { createRoot } from "react-dom/client";
@@ -96,10 +96,45 @@ function isCopilotApiError(error: unknown): error is CopilotApiError {
 }
 
 function getUiMessageText(message: { parts: unknown[] }): string {
-  return (message.parts as { type: string; text?: string }[])
-    .filter((p) => p.type === "text" && p.text)
-    .map((p) => p.text)
+  return message.parts
+    .map(formatUiMessagePart)
+    .filter(Boolean)
     .join("");
+}
+
+function formatUiMessagePart(part: unknown): string {
+  if (!isObject(part) || typeof part.type !== "string") {
+    return "";
+  }
+
+  if (part.type === "text" && typeof part.text === "string") {
+    return part.text;
+  }
+
+  if (part.type === "tool-createSearchRequest") {
+    const output = isObject(part.output) ? part.output : null;
+    const input = isObject(part.input) ? part.input : null;
+    const searchRequest = typeof output?.searchRequest === "string"
+      ? output.searchRequest
+      : typeof input?.searchRequest === "string"
+        ? input.searchRequest
+        : "";
+
+    if (!searchRequest) {
+      return "";
+    }
+
+    const matchCount = typeof output?.matchCount === "number" ? output.matchCount : 0;
+    const applied = output?.applied === true;
+
+    if (applied && matchCount > 0) {
+      return `I found ${matchCount} Match${matchCount === 1 ? "" : "es"} for this Search Request: "${searchRequest}".\n\nReview the Shortlist on the left for evidence, gaps, risks, and Suggested Next Actions.`;
+    }
+
+    return `I drafted this Search Request: "${searchRequest}".\n\nI could not find enough Candidate Record evidence to create a Shortlist.`;
+  }
+
+  return "";
 }
 
 function classifyCopilotError(error: unknown): CopilotErrorState {
@@ -258,7 +293,6 @@ function HomeRoute() {
   const { session } = useAppSession();
   const [copilotError, setCopilotError] = useState<CopilotErrorState | null>(null);
   const hasTalentPool = session.candidateRecordCount > 0;
-  const hasSearchRequest = !!session.searchRequest;
 
   if (copilotError?.kind === "server") {
     return <CopilotServerErrorHomeView error={copilotError} onRetry={() => setCopilotError(null)} />;
@@ -268,11 +302,11 @@ function HomeRoute() {
     return <EmptyHomeView copilotError={copilotError} onCopilotError={setCopilotError} onClearCopilotError={() => setCopilotError(null)} />;
   }
 
-  if (!hasSearchRequest) {
-    return <DataReadyHomeView copilotError={copilotError} onCopilotError={setCopilotError} onClearCopilotError={() => setCopilotError(null)} />;
+  if (session.shortlist.length > 0) {
+    return <ShortlistHomeView copilotError={copilotError} onCopilotError={setCopilotError} onClearCopilotError={() => setCopilotError(null)} />;
   }
 
-  return <ActiveHomeView copilotError={copilotError} onCopilotError={setCopilotError} onClearCopilotError={() => setCopilotError(null)} />;
+  return <DataReadyHomeView copilotError={copilotError} onCopilotError={setCopilotError} onClearCopilotError={() => setCopilotError(null)} />;
 }
 
 type HomeCopilotProps = {
@@ -413,62 +447,137 @@ function DataReadyHomeView({ copilotError, onCopilotError, onClearCopilotError }
   );
 }
 
-function ActiveHomeView({ copilotError, onCopilotError, onClearCopilotError }: HomeCopilotProps) {
-  const { session, setSession } = useAppSession();
-  const [draftSearchRequest, setDraftSearchRequest] = useState(session.searchRequest);
-
-  useEffect(() => {
-    setDraftSearchRequest(session.searchRequest);
-  }, [session.searchRequest]);
-
-  function handleSearchSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const searchRequest = draftSearchRequest.trim() || session.searchRequest;
-    if (!searchRequest) return;
-
-    const searchCriteria = interpretSearchCriteria(searchRequest);
-    const shortlist = buildShortlist(session.candidateRecords, searchCriteria);
-
-    setSession((current) => ({
-      ...current,
-      searchRequest,
-      searchCriteria,
-      shortlist,
-      selectedMatchId: null,
-    }));
-  }
+function ShortlistHomeView({ copilotError, onCopilotError, onClearCopilotError }: HomeCopilotProps) {
+  const { session } = useAppSession();
 
   return (
     <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
-      <div className="flex-1 space-y-6 overflow-y-auto">
-        <div className="flex items-end justify-between">
+      <section className="flex-1 space-y-6 overflow-y-auto px-0 lg:px-10">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="font-serif text-[32px] font-semibold leading-10 tracking-[-0.01em] text-slate">
-              Talent Discovery Workspace
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-earth">Shortlist</p>
+            <h2 className="mt-2 font-serif text-[32px] font-semibold leading-10 tracking-[-0.01em] text-slate">
+              Evidence-grounded Matches
             </h2>
-            <p className="mt-2 text-base leading-7 text-muted">Draft intent, review criteria, and uncover evidence-grounded Matches.</p>
+            <p className="mt-2 text-base leading-7 text-muted">
+              Search Request: <span className="font-semibold text-slate">{session.searchRequest}</span>
+            </p>
           </div>
-          <span className="hidden rounded-full bg-surface-high px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted sm:inline-flex">
-            {session.candidateRecordCount} Candidate Records
+          <span className="w-fit rounded-full bg-surface-high px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+            {session.shortlist.length} {session.shortlist.length === 1 ? "Match" : "Matches"} returned
           </span>
         </div>
 
-        <SearchRequestForm
-          draftSearchRequest={draftSearchRequest}
-          onDraftChange={setDraftSearchRequest}
-          searchStatus="Refine your Search Request and re-run, or use the Copilot for follow-up."
-          hasTalentPool={true}
-          onSubmit={handleSearchSubmit}
-        />
+        <SearchCriteriaSummary searchCriteria={session.searchCriteria} />
 
-        <SearchCriteriaPanel searchCriteria={session.searchCriteria} searchRequest={session.searchRequest} />
-
-        <ShortlistSection matches={session.shortlist} />
-      </div>
+        <div className="space-y-4">
+          {session.shortlist.map((match, index) => (
+            <ShortlistMatchCard key={getMatchId(match)} match={match} index={index} />
+          ))}
+        </div>
+      </section>
 
       <CopilotPanel mode="active" copilotError={copilotError} onCopilotError={onCopilotError} onClearCopilotError={onClearCopilotError} />
     </div>
   );
+}
+
+function SearchCriteriaSummary({ searchCriteria }: { searchCriteria: SearchCriteria | null }) {
+  if (!searchCriteria) {
+    return null;
+  }
+
+  const criteria = [
+    ...(searchCriteria.skills?.length ? [{ label: "Skills", value: searchCriteria.skills.join(", ") }] : []),
+    ...(searchCriteria.seniority ? [{ label: "Seniority", value: searchCriteria.seniority }] : []),
+    ...(searchCriteria.location?.length ? [{ label: "Location", value: searchCriteria.location.join(", ") }] : []),
+    ...(searchCriteria.industry?.length ? [{ label: "Industry", value: searchCriteria.industry.join(", ") }] : []),
+    ...(searchCriteria.languageLevel ? [{ label: "Language", value: searchCriteria.languageLevel }] : []),
+    ...(searchCriteria.availability ? [{ label: "Availability", value: searchCriteria.availability }] : []),
+  ];
+
+  if (criteria.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-5 shadow-stitch-card">
+      <div className="mb-4 flex items-center gap-2">
+        <span className="material-symbols-outlined text-earth">tune</span>
+        <h3 className="font-serif text-xl font-semibold text-slate">Interpreted Search Criteria</h3>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {criteria.map((item) => (
+          <span key={item.label} className="rounded bg-slate-soft px-3 py-1 text-xs font-semibold text-slate">
+            {item.label}: {item.value}
+          </span>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ShortlistMatchCard({ match, index }: { match: Match; index: number }) {
+  return (
+    <Link
+      to="/matches/$matchId"
+      params={{ matchId: getMatchId(match) }}
+      className="block rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card transition hover:-translate-y-0.5 hover:shadow-md"
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-earth">Match {index + 1}</p>
+          <h3 className="mt-1 font-serif text-xl font-semibold text-slate">{getCandidateRecordLabel(match)}</h3>
+          <p className="mt-1 text-sm leading-6 text-muted">{match.candidateRecord.canonicalFields.currentRole || "Role not provided"}</p>
+        </div>
+        <span className={`inline-flex w-fit shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${getStrengthClass(match.strength)}`}>
+          <span className="material-symbols-outlined text-[14px]">check_circle</span>
+          {match.strength}
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-4 border-t border-outline-soft/10 pt-4 md:grid-cols-2">
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Evidence</p>
+          <ul className="space-y-2 text-sm leading-6 text-ink">
+            {match.reasons.slice(0, 3).map((reason) => (
+              <li key={reason} className="flex items-start gap-2">
+                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-evidence" />
+                {reason}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Gaps and risks</p>
+          <ul className="space-y-2 text-sm leading-6 text-muted">
+            {[...match.gaps.slice(0, 1), ...match.risks.slice(0, 1)].map((item) => (
+              <li key={item} className="flex items-start gap-2">
+                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-earth" />
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <p className="mt-4 rounded-lg bg-surface-low px-4 py-3 text-sm font-semibold leading-6 text-slate">
+        Suggested Next Action: {match.suggestedNextAction}
+      </p>
+    </Link>
+  );
+}
+
+function getStrengthClass(strength: Match["strength"]) {
+  if (strength === "Strong") {
+    return "bg-evidence-soft text-evidence";
+  }
+
+  if (strength === "Possible") {
+    return "bg-secondary-soft text-secondary-strong";
+  }
+
+  return "bg-risk-soft text-risk";
 }
 
 function CopilotServerErrorHomeView({ error, onRetry }: { error: CopilotErrorState; onRetry: () => void }) {
@@ -508,220 +617,6 @@ function CopilotServerErrorHomeView({ error, onRetry }: { error: CopilotErrorSta
 
       <CopilotPanel mode="active" copilotError={error} onCopilotError={() => undefined} onClearCopilotError={onRetry} />
     </div>
-  );
-}
-
-function SearchRequestForm({
-  draftSearchRequest,
-  onDraftChange,
-  searchStatus,
-  hasTalentPool,
-  onSubmit,
-}: {
-  draftSearchRequest: string;
-  onDraftChange: (value: string) => void;
-  searchStatus: string;
-  hasTalentPool: boolean;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
-}) {
-  return (
-    <section className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card">
-      <form className="space-y-5" onSubmit={onSubmit}>
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-earth">Search Request</p>
-          <h3 className="mt-2 font-serif text-xl font-semibold text-slate">Describe the profile you need</h3>
-          <p className="mt-2 text-sm leading-6 text-muted">
-            The Copilot can help draft recruiter intent, but building a Shortlist requires an explicit run action.
-          </p>
-        </div>
-        <label className="grid gap-2 text-sm font-semibold text-slate" htmlFor="search-request">
-          Search Request
-          <textarea
-            id="search-request"
-            className="min-h-28 rounded-xl border border-outline-soft/30 bg-surface-lowest p-4 text-base font-normal leading-7 text-ink outline-none transition focus:border-slate"
-            placeholder='Example: "Senior React profiles with fintech experience, good English, remote Colombia"'
-            value={draftSearchRequest}
-            onChange={(event) => onDraftChange(event.target.value)}
-          />
-        </label>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm leading-6 text-muted" aria-live="polite">
-            {searchStatus}
-          </p>
-          {hasTalentPool ? (
-            <button type="submit" className="rounded-lg bg-slate-strong px-4 py-3 text-sm font-bold text-white transition hover:bg-slate">
-              Run Search Request
-            </button>
-          ) : (
-            <Link to="/talent-pool" className="rounded-lg bg-slate-strong px-4 py-3 text-sm font-bold text-white transition hover:bg-slate">
-              Load Talent Pool File
-            </Link>
-          )}
-        </div>
-      </form>
-    </section>
-  );
-}
-
-function SearchCriteriaPanel({
-  searchCriteria,
-  searchRequest,
-}: {
-  searchCriteria: SearchCriteria | null;
-  searchRequest: string;
-}) {
-  if (!searchCriteria || Object.keys(searchCriteria).length === 0) {
-    return null;
-  }
-
-  const entities: { label: string; value: string; color: string }[] = [];
-
-  if (searchCriteria.skills && searchCriteria.skills.length > 0) {
-    entities.push({ label: `Skills: ${searchCriteria.skills.join(", ")}`, value: "skill", color: "slate" });
-  }
-  if (searchCriteria.seniority) {
-    entities.push({ label: `Seniority: ${searchCriteria.seniority}`, value: "seniority", color: "slate" });
-  }
-  if (searchCriteria.location && searchCriteria.location.length > 0) {
-    entities.push({ label: `Location: ${searchCriteria.location.join(", ")}`, value: "location", color: "slate" });
-  }
-  if (searchCriteria.industry && searchCriteria.industry.length > 0) {
-    entities.push({ label: `Industry: ${searchCriteria.industry.join(", ")}`, value: "industry", color: "earth" });
-  }
-  if (searchCriteria.languageLevel) {
-    entities.push({ label: `Language: ${searchCriteria.languageLevel}`, value: "language", color: "slate" });
-  }
-  if (searchCriteria.availability) {
-    entities.push({ label: `Availability: ${searchCriteria.availability}`, value: "availability", color: "slate" });
-  }
-
-  return (
-    <section className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card">
-      <div className="mb-4 flex items-center gap-2 border-b border-outline-soft/10 pb-4">
-        <span className="material-symbols-outlined text-earth">tune</span>
-        <h3 className="font-serif text-xl font-semibold text-slate">Interpreted Search Criteria</h3>
-      </div>
-      <div className="grid gap-6 md:grid-cols-2">
-        <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Primary Intent</h4>
-          <p className="text-base leading-7 text-ink">{searchRequest}</p>
-        </div>
-        <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Extracted Criteria</h4>
-          <div className="flex flex-wrap gap-2">
-            {entities.length > 0 ? (
-              entities.map((entity) => (
-                <span
-                  key={entity.value}
-                  className={`rounded px-3 py-1 text-xs font-semibold ${
-                    entity.color === "earth"
-                      ? "bg-earth-soft text-earth"
-                      : "bg-slate-soft text-slate"
-                  }`}
-                >
-                  {entity.label}
-                </span>
-              ))
-            ) : (
-              <span className="text-sm text-muted">No structured criteria could be interpreted.</span>
-            )}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function ShortlistSection({ matches }: { matches: Match[] }) {
-  return (
-    <section>
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-serif text-xl font-semibold text-slate">Ranked Shortlist</h3>
-        {matches.length > 0 ? (
-          <span className="rounded bg-surface-high px-2 py-1 text-xs font-semibold text-muted">
-            {matches.length} Matches found
-          </span>
-        ) : null}
-      </div>
-      {matches.length > 0 ? (
-        <div className="space-y-4">
-          {matches.map((match, index) => (
-            <MatchCard key={getMatchId(match)} match={match} index={index} />
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-8 text-center shadow-stitch-card">
-          <span className="material-symbols-outlined mb-4 text-[48px] text-slate/40">folder_open</span>
-          <h3 className="font-serif text-xl font-semibold text-slate">No Matches yet</h3>
-          <p className="mt-2 max-w-md text-sm leading-6 text-muted">
-            Load a Talent Pool File and explicitly run a Search Request to create an ephemeral Shortlist.
-          </p>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function MatchCard({ match, index }: { match: Match; index: number }) {
-  return (
-    <Link
-      to="/matches/$matchId"
-      params={{ matchId: getMatchId(match) }}
-      className="relative block rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card transition-shadow hover:shadow-md"
-    >
-      <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-earth" />
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-earth">Match {index + 1}</p>
-          <h4 className="mt-1 font-serif text-xl font-semibold text-slate">{getCandidateRecordLabel(match)}</h4>
-          <p className="mt-1 text-sm text-muted">{match.candidateRecord.canonicalFields.currentRole || "Role not provided"}</p>
-        </div>
-        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${
-          match.strength === "Strong"
-            ? "bg-evidence-soft text-evidence"
-            : match.strength === "Possible"
-            ? "bg-secondary-soft text-secondary-strong"
-            : "bg-risk-soft text-risk"
-        }`}>
-          {match.strength}
-        </span>
-      </div>
-      <div className="grid gap-4 border-t border-outline-soft/10 pt-4 sm:grid-cols-2">
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Evidence</p>
-          <ul className="space-y-1 text-sm leading-6 text-ink">
-            {match.reasons.slice(0, 3).map((reason) => (
-              <li key={reason} className="flex items-start gap-2">
-                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-evidence" />
-                {reason}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted">Gaps & Risks</p>
-          {match.gaps.length > 0 || match.risks.length > 0 ? (
-            <ul className="space-y-1 text-sm leading-6 text-muted">
-              {match.gaps.slice(0, 1).map((gap) => (
-                <li key={gap} className="flex items-start gap-2">
-                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-secondary-strong" />
-                  {gap}
-                </li>
-              ))}
-              {match.risks.slice(0, 1).map((risk) => (
-                <li key={risk} className="flex items-start gap-2">
-                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-risk" />
-                  {risk}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-muted">No significant gaps or risks identified.</p>
-          )}
-        </div>
-      </div>
-      <p className="mt-4 text-sm font-semibold text-slate">{match.suggestedNextAction}</p>
-    </Link>
   );
 }
 
@@ -995,18 +890,44 @@ function formatStatusBadge(record: CandidateRecord, records: CandidateRecord[]) 
   );
 }
 
-function formatSourceLabel(source: string) {
-  if (!source) {
+function formatSourceLabel(source: unknown) {
+  const sourceText = normalizeSourceValue(source);
+
+  if (!sourceText) {
     return <span className="text-xs italic text-muted-soft">Unknown source</span>;
   }
 
-  const cleanSource = source
+  const cleanSource = sourceText
     .replace(/greenhouse\s*api/i, "CSV Upload")
     .replace(/linkedin\s*scrape/i, "CSV Upload")
     .replace(/api/i, "CSV Upload")
     .trim();
 
   return <span className="text-xs font-medium text-slate">{cleanSource}</span>;
+}
+
+function normalizeSourceValue(source: unknown): string {
+  if (typeof source === "string") {
+    return source.trim();
+  }
+
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    return "";
+  }
+
+  const sourceRecord = source as Record<string, unknown>;
+  const preferredValue = ["label", "name", "source", "origin", "pipeline", "fileName", "type"]
+    .map((key) => sourceRecord[key])
+    .find((value): value is string => typeof value === "string" && value.trim().length > 0);
+
+  if (preferredValue) {
+    return preferredValue.trim();
+  }
+
+  return Object.entries(sourceRecord)
+    .filter(([, value]) => typeof value === "string" && value.trim().length > 0)
+    .map(([key, value]) => `${key}: ${(value as string).trim()}`)
+    .join(" / ");
 }
 
 function MatchDetailRoute() {
@@ -1328,7 +1249,6 @@ function CopilotPanel({
   onClearCopilotError: () => void;
 }) {
   const { session, setSession } = useAppSession();
-  const router = useRouter();
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
   const sessionRef = useRef(session);
@@ -1381,25 +1301,27 @@ function CopilotPanel({
     const searchRequest = typeof input.searchRequest === "string" ? input.searchRequest.trim() : "";
     if (!searchRequest) return;
 
-    setSession((current) => {
-      if (current.candidateRecords.length === 0) return current;
+    const current = sessionRef.current;
+    const searchCriteria = interpretSearchCriteria(searchRequest);
+    const shortlist = current.candidateRecords.length > 0 ? buildShortlist(current.candidateRecords, searchCriteria) : [];
+    const matchCount = shortlist.length;
 
-      const searchCriteria = interpretSearchCriteria(searchRequest);
-      const shortlist = buildShortlist(current.candidateRecords, searchCriteria);
-
-      return {
-        ...current,
-        searchRequest,
-        searchCriteria,
-        shortlist,
-        selectedMatchId: null,
-      };
+    setSession({
+      ...current,
+      searchRequest,
+      searchCriteria,
+      shortlist,
+      selectedMatchId: null,
     });
 
     void addToolOutputRef.current?.({
       tool: "createSearchRequest",
       toolCallId: toolCall.toolCallId,
-      output: { applied: true },
+      output: {
+        applied: matchCount > 0,
+        searchRequest,
+        matchCount,
+      },
     });
   };
 
@@ -1522,7 +1444,7 @@ function CopilotPanel({
             </div>
             <div className="flex flex-col gap-2">
               <div className="rounded-2xl rounded-tl-sm border border-outline-soft/20 bg-surface-lowest p-4 text-sm leading-6 text-ink shadow-sm">
-                I'm ready to help you rediscover talent. Describe the role you're looking for and I'll search your Talent Pool.
+                I'm ready to help you rediscover talent. Describe the profile you need and I'll draft a Search Request for your Talent Pool.
               </div>
             </div>
           </div>
