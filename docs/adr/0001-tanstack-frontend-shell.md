@@ -24,7 +24,7 @@ The `/` cockpit must load even before a Talent Pool exists. In that empty state,
 
 The `/talent-pool` route should show normalized Candidate Records in a TanStack Table: row number, name, current role, location, years experience, skills, industries, English level, availability, last contact date, source, normalization gaps, and duplicate warnings when available. The table may support client-side sorting, filtering, and source field expansion, but it must not support inline editing, saving, real sync, ATS import, or Candidate Record mutation in the MVP.
 
-Search Requests in the new UI should be Copilot-first but explicitly executed. The `/` cockpit should use a chat-style composer that can turn recruiter intent into a Search Request, show the resulting Search Request, and require an explicit run action before building a Shortlist. Interpreted Search Criteria remain read-only; recruiters change them by revising the Search Request, not by editing filters.
+Search Requests in the new UI should be Copilot-first and auto-executed after a Talent Pool has been loaded. The `/` cockpit should use a chat-style composer that can turn recruiter intent into a Search Request, show the resulting Search Request, interpret read-only Search Criteria, and immediately build the resulting Shortlist when Candidate Records are available. Recruiters change Search Criteria by revising the Search Request, not by editing filters.
 
 OpenAI models should be configurable through environment variables. Chat Copilot should use Vercel AI SDK with a text-capable model configured by `OPENAI_CHAT_MODEL`; Voice Copilot should use `gpt-realtime 2.0` or equivalent configured by `OPENAI_REALTIME_MODEL`. Model names should not be hardcoded into domain logic.
 

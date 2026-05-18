@@ -86,7 +86,9 @@ The prototype must provide a text input where the recruiter submits a Search Req
 
 The prototype should derive Search Criteria from the Search Request where useful, while keeping the original Search Request visible.
 
-The MVP should show interpreted Search Criteria for transparency, but it must not provide granular manual editing of Search Criteria. If interpretation is wrong, the recruiter should revise the Search Request and run the search again.
+When a Search Request is submitted after a Talent Pool has been loaded, the prototype should auto-execute the Search Request and return the resulting Shortlist without requiring a separate manual run action.
+
+The MVP should show interpreted Search Criteria for transparency, but it must not provide granular manual editing of Search Criteria. If interpretation is wrong, the recruiter should revise the Search Request and let the prototype produce a new Shortlist from the revised request.
 
 The prototype should support requests like:
 
@@ -142,8 +144,8 @@ The message should be editable and should not send automatically.
 - Keep Candidate Records in memory for the first prototype.
 - Do not persist uploaded Talent Pools in the MVP.
 - Avoid RAG, embeddings, vector databases, and long-term memory.
-- Avoid a frontend framework for the initial prototype.
-- Use browser primitives, plain JavaScript or TypeScript, and Web Components where useful.
+- Use the accepted TanStack frontend shell for the demo iteration: Vite, TanStack Router, TypeScript, and Tailwind.
+- Treat the earlier framework-free/browser-primitives direction as superseded for frontend shell decisions by `docs/adr/0001-tanstack-frontend-shell.md`.
 - Use pnpm and Node >= 24 once package setup is introduced.
 - Keep Voice Copilot optional and scoped as an interaction layer.
 - Prioritize explained matching over opaque scoring.

@@ -34,12 +34,12 @@ Lightweight guardrails so future agents and contributors preserve the Stitch-bas
 | Expectation | Enforcement |
 |---|---|
 | Layout follows Stitch `copilot_cockpit_talent_rediscovery/`: workspace left + Copilot panel right (380px) | Visual review |
-| Search Request re-execution is available via textarea + submit button | Must not auto-run on chat |
+| Search Request revision is available via the Copilot composer | Submitting a revised Search Request auto-executes a new Shortlist when Candidate Records are loaded |
 | Interpreted Search Criteria shown read-only with Primary Intent + Extracted Criteria chips | No inline editing |
 | Shortlist Match cards show qualitative label only (Strong / Possible / Weak) | Must not reintroduce percentage scores |
 | Match cards separate Evidence, Gaps/Risks, and Suggested Next Action into distinct areas | Visual review |
 | Copilot panel uses chat bubble treatment with composer textarea (enabled — Chat Copilot is implemented) | Enabled affordance |
-| Empty Shortlist state guides to run a Search Request | Must not claim Matches without explicit execution |
+| Empty Shortlist state guides the recruiter to revise the Search Request or load Candidate Records | Must not claim Matches without Candidate Record evidence |
 
 ### `/` Home — Copilot Thinking & Tool Calling States
 
@@ -106,7 +106,7 @@ Applied from `docs/design/stitch/review.md`. Any future Stitch export or UI work
 | Candidate Profile / Full Profile | Candidate Record view |
 | Greenhouse API, LinkedIn Scrape | CSV Upload, ATS Export CSV, Recruiter Notes CSV |
 | Export (active) | Disable — out of MVP scope |
-| Running the search against your talent pool now | Ready to run this Search Request (explicit execution) |
+| Ready to run this Search Request | Evaluating Candidate Records against this Search Request |
 | Send / Send outreach | Create editable draft — Talent Rediscovery never sends outreach automatically |
 | Regenerate Tone | (Omit or implement as requesting a new editable draft) |
 | Last active: 2 days ago | Omit — session-scoped Match, not persistent profile |
@@ -252,7 +252,7 @@ Before merging any UI change:
 - [ ] No "RecruitAI", "Dashboard", "Settings" labels
 - [ ] No send outreach, persist, export, sync, or external import behavior added as active
 - [ ] No inline editing of Candidate Records or Search Criteria
-- [ ] Copilot does not auto-execute Search Requests
+- [ ] Copilot auto-executes Search Requests only after Candidate Records are loaded
 - [ ] Match detail is clearly session-scoped, not a persistent profile
 - [ ] Source labels do not reference Greenhouse API, LinkedIn Scrape, etc.
 - [ ] Empty states guide the recruiter (load Talent Pool → run Search Request)

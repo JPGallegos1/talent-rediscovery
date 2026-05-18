@@ -50,7 +50,7 @@ The `/` cockpit should support a Copilot-first experience:
 - Chat and Voice Copilot area, likely on the right side.
 - Current Shortlist and Match workspace in the center.
 - Ability to create or draft a Search Request from recruiter intent.
-- Explicit action to run the Search Request before showing Matches.
+- Auto-execution of the Search Request into a Shortlist once Candidate Records are loaded.
 - Read-only interpreted Search Criteria after execution.
 
 The `/talent-pool` route should focus on:
