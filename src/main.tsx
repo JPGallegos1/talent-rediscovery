@@ -1393,10 +1393,11 @@ function CopilotPanel({
         : visibleCopilotError?.kind === "client"
           ? "Type a revised request..."
           : "Describe the role you're looking for...";
+  const copilotPanelClassName = "mt-6 flex w-full flex-col overflow-hidden rounded-xl border border-outline-soft/20 bg-surface-low shadow-stitch-panel xl:sticky xl:top-0 xl:mt-0 xl:ml-6 xl:h-[calc(100vh-8rem)] xl:max-h-[calc(100vh-8rem)] xl:w-[380px] xl:shrink-0 xl:self-start";
 
   if (mode === "empty") {
     return (
-      <aside className="mt-6 flex w-full flex-col overflow-hidden rounded-xl border border-outline-soft/20 bg-surface-low shadow-stitch-panel xl:mt-0 xl:ml-6 xl:w-[380px] xl:shrink-0">
+      <aside className={copilotPanelClassName}>
         <div className="flex items-center justify-between border-b border-outline-soft/10 bg-surface/50 px-5 py-4 backdrop-blur">
           <div className="flex items-center gap-2 text-slate">
             <div className="flex size-10 items-center justify-center rounded-full bg-earth-soft text-earth">
@@ -1446,7 +1447,7 @@ function CopilotPanel({
   }
 
   return (
-    <aside className="mt-6 flex w-full flex-col overflow-hidden rounded-xl border border-outline-soft/20 bg-surface-low shadow-stitch-panel xl:mt-0 xl:ml-6 xl:w-[380px] xl:shrink-0">
+    <aside className={copilotPanelClassName}>
       <div className="flex items-center justify-between border-b border-outline-soft/10 bg-surface/50 px-5 py-4 backdrop-blur">
         <div className="flex items-center gap-2 text-slate">
           <div className="flex size-10 items-center justify-center rounded-full bg-earth-soft text-earth">
