@@ -21,7 +21,7 @@ export const intelligenceActionTools = {
     }),
   }),
   compareMatches: tool({
-    description: "Compare two or more existing Matches from the current Shortlist using explicit matchIds. Do not infer missing matchIds.",
+    description: "Compare two or more existing Matches from the current Shortlist using explicit matchIds. Do not infer missing matchIds. After a compact comparison, ask whether the recruiter wants the detailed report and mention the available CTA.",
     inputSchema: z.object({
       matchIds: z.array(z.string()).describe("The matchIds of the Matches to compare (2 or more)."),
     }),

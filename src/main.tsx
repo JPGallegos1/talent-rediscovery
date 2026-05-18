@@ -4,7 +4,7 @@ import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvide
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { useAppStore, type CopilotErrorState } from "./app-store.js";
+import { useAppStore, type ComparisonReport, type CopilotErrorState } from "./app-store.js";
 import { parseCsvTalentPool, type CandidateRecord } from "./csv-candidate-records.js";
 import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "./message-draft.js";
 import { interpretSearchCriteria, type SearchCriteria } from "./search-criteria.js";
@@ -97,6 +97,27 @@ function getMessageActivities(message: { parts: unknown[] }) {
   return message.parts.map(getCreateSearchRequestActivity).filter((activity) => activity !== null);
 }
 
+function getComparisonReportActivity(part: unknown) {
+  if (!isObject(part) || part.type !== "tool-compareMatches") {
+    return null;
+  }
+
+  const output = getToolPartValue(part, "output");
+
+  if (output?.compared !== true || output?.comparisonReportAvailable !== true) {
+    return null;
+  }
+
+  return {
+    comparisonRoute: typeof output.comparisonRoute === "string" ? output.comparisonRoute : "/to-compare",
+    ctaLabel: typeof output.ctaLabel === "string" ? output.ctaLabel : "Open detailed comparison",
+  };
+}
+
+function getComparisonReportActivities(message: { parts: unknown[] }) {
+  return message.parts.map(getComparisonReportActivity).filter((activity) => activity !== null);
+}
+
 function getInputString(input: unknown, key: string) {
   if (!isObject(input)) {
     return "";
@@ -150,13 +171,14 @@ function getMatchExplanation(match: Match) {
   };
 }
 
-function buildCompactComparison(matches: Match[]) {
+function buildComparisonReport(matches: Match[], searchRequest: string): ComparisonReport {
   const evidenceByMatch = matches.map((match) => new Set(match.evidence.map((item) => `${item.label}: ${item.matched}`)));
   const sharedEvidence = matches[0].evidence
     .map((item) => `${item.label}: ${item.matched}`)
     .filter((item) => evidenceByMatch.every((items) => items.has(item)));
 
   return {
+    searchRequest,
     comparedMatchIds: matches.map(getMatchId),
     sharedEvidence,
     matches: matches.map((match) => ({
@@ -165,11 +187,6 @@ function buildCompactComparison(matches: Match[]) {
         .map((item) => `${item.label}: ${item.matched}`)
         .filter((item) => !sharedEvidence.includes(item)),
     })),
-    constraints: [
-      "Comparison uses only current Shortlist Match data.",
-      "Match strength remains qualitative: Strong, Possible, or Weak.",
-      "No percentage scores or external candidate claims were introduced.",
-    ],
   };
 }
 
@@ -1203,6 +1220,144 @@ function MatchDetailRoute() {
   );
 }
 
+function ComparisonReportRoute() {
+  const comparisonReport = useAppStore((state) => state.comparisonReport);
+
+  if (!comparisonReport) {
+    return (
+      <section className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-8 text-center shadow-stitch-card">
+        <span className="material-symbols-outlined mb-4 text-[48px] text-slate/40">compare_arrows</span>
+        <h2 className="font-serif text-2xl font-semibold text-slate">No comparison report is available for this session</h2>
+        <p className="mx-auto mt-2 max-w-xl text-base leading-7 text-muted">
+          Detailed Match comparison reports are stored only in browser memory. Load a Talent Pool File, run a Search Request, and ask Copilot to compare at least two current Match IDs.
+        </p>
+        <Link to="/" className="mt-6 inline-flex rounded-lg bg-slate-strong px-4 py-3 text-sm font-bold text-white transition hover:bg-slate">
+          Return to Home
+        </Link>
+      </section>
+    );
+  }
+
+  return (
+    <section className="space-y-6">
+      <div className="flex flex-col gap-3 rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-earth">Session-scoped comparison</p>
+          <h2 className="mt-2 font-serif text-[32px] font-semibold leading-10 tracking-[-0.01em] text-slate">Detailed Match comparison</h2>
+          <p className="mt-2 max-w-3xl text-base leading-7 text-muted">
+            Search Request: <span className="font-semibold text-slate">{comparisonReport.searchRequest || "Current Search Request"}</span>
+          </p>
+          <p className="mt-2 text-sm leading-6 text-muted">
+            Compared Match IDs: <span className="font-semibold text-slate">{comparisonReport.comparedMatchIds.join(", ")}</span>
+          </p>
+        </div>
+        <Link to="/" className="inline-flex w-fit items-center gap-2 rounded-lg border border-outline-soft px-4 py-3 text-sm font-bold text-slate transition hover:bg-surface-high">
+          <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+          Return to Shortlist
+        </Link>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {comparisonReport.matches.map((match) => (
+          <section key={match.matchId} className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-5 shadow-stitch-card">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-earth">{match.matchId}</p>
+                <h3 className="mt-1 font-serif text-xl font-semibold text-slate">{match.candidateRecordLabel}</h3>
+                <p className="mt-1 text-sm leading-6 text-muted">{match.currentRole}</p>
+              </div>
+              <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-xs font-bold ${getStrengthClass(match.strength)}`}>
+                <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                {match.strength}
+              </span>
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <section className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card">
+        <h3 className="font-serif text-xl font-semibold text-slate">
+          <span className="material-symbols-outlined mr-2 align-middle text-earth">hub</span>
+          Shared Evidence
+        </h3>
+        {comparisonReport.sharedEvidence.length > 0 ? (
+          <ul className="mt-4 grid gap-3 text-sm leading-6 text-ink md:grid-cols-2">
+            {comparisonReport.sharedEvidence.map((item) => (
+              <li key={item} className="rounded-lg bg-evidence-soft px-4 py-3 text-evidence">{item}</li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3 text-sm leading-6 text-muted">No shared evidence was found across all compared Matches. Review differentiators below.</p>
+        )}
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        {comparisonReport.matches.map((match) => (
+          <section key={`${match.matchId}-details`} className="space-y-5 rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-earth">Match detail</p>
+              <h3 className="mt-1 font-serif text-2xl font-semibold text-slate">{match.candidateRecordLabel}</h3>
+              <p className="mt-1 text-sm leading-6 text-muted">{match.matchId} · {match.currentRole}</p>
+            </div>
+
+            <ComparisonList title="Reasons" icon="insights" items={match.reasons} tone="evidence" />
+            <ComparisonList title="Differentiators" icon="difference" items={match.differentiators.length > 0 ? match.differentiators : ["No unique evidence differentiators beyond the shared evidence."]} tone="slate" />
+
+            <div>
+              <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
+                <span className="material-symbols-outlined text-[16px]">history</span>
+                Candidate Record Evidence
+              </h4>
+              <div className="space-y-3">
+                {match.evidence.map((item) => (
+                  <div key={`${match.matchId}-${item.label}-${item.matched}`} className="rounded-lg border border-outline-soft/10 bg-surface-low p-4">
+                    <p className="text-sm font-semibold text-slate">{item.label}</p>
+                    <p className="mt-1 text-sm leading-6 text-muted">{item.value}</p>
+                    <span className="mt-2 inline-flex rounded bg-evidence-soft px-2 py-0.5 text-[10px] font-semibold text-evidence">{item.matched}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <ComparisonList title="Gaps" icon="help" items={match.gaps} tone="secondary" />
+            <ComparisonList title="Risks" icon="warning" items={match.risks} tone="risk" />
+
+            <p className="rounded-lg bg-surface-high px-4 py-3 text-sm font-semibold leading-6 text-slate">
+              Suggested Next Action: {match.suggestedNextAction}
+            </p>
+          </section>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ComparisonList({ title, icon, items, tone }: { title: string; icon: string; items: string[]; tone: "evidence" | "risk" | "secondary" | "slate" }) {
+  const dotClass = {
+    evidence: "bg-evidence",
+    risk: "bg-risk",
+    secondary: "bg-secondary-strong",
+    slate: "bg-slate",
+  }[tone];
+
+  return (
+    <div>
+      <h4 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted">
+        <span className="material-symbols-outlined text-[16px]">{icon}</span>
+        {title}
+      </h4>
+      <ul className="space-y-2 text-sm leading-6 text-muted">
+        {items.map((item) => (
+          <li key={item} className="flex items-start gap-2">
+            <span className={`mt-2 size-1.5 shrink-0 rounded-full ${dotClass}`} />
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function getMatchId(match: Match) {
   return `row-${match.candidateRecord.rowNumber}`;
 }
@@ -1289,6 +1444,21 @@ function CopilotActivityCard({ activity }: { activity: NonNullable<ReturnType<ty
   );
 }
 
+function CopilotComparisonReportActivityCard({ activity }: { activity: NonNullable<ReturnType<typeof getComparisonReportActivity>> }) {
+  return (
+    <div className="max-w-[92%] rounded-xl border border-outline-soft/20 bg-surface-high/50 px-4 py-3 text-sm leading-6 text-muted shadow-sm">
+      <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate">
+        <span className="material-symbols-outlined text-[16px] text-evidence">compare_arrows</span>
+        Detailed comparison ready
+      </div>
+      <p>The report is stored in this browser-memory session only.</p>
+      <Link to="/to-compare" className="mt-3 inline-flex rounded-lg bg-slate-strong px-3 py-2 text-xs font-bold text-white transition hover:bg-slate">
+        {activity.ctaLabel}
+      </Link>
+    </div>
+  );
+}
+
 function CopilotPanel({
   mode,
   copilotError,
@@ -1365,11 +1535,7 @@ function CopilotPanel({
       const shortlist = current.candidateRecords.length > 0 ? buildShortlist(current.candidateRecords, searchCriteria) : [];
       const matchCount = shortlist.length;
 
-      current.applySearchRequest({
-        searchRequest,
-        searchCriteria,
-        shortlist,
-      });
+      current.applySearchRequest({ searchRequest, searchCriteria, shortlist });
 
       outputToolCall({
         applied: matchCount > 0,
@@ -1399,10 +1565,7 @@ function CopilotPanel({
       const match = current.shortlist.find((candidateMatch) => getMatchId(candidateMatch) === matchId);
 
       outputToolCall(match
-        ? {
-            found: true,
-            explanation: getMatchExplanation(match),
-          }
+        ? { found: true, explanation: getMatchExplanation(match) }
         : {
             found: false,
             requestedMatchId: matchId || null,
@@ -1428,11 +1591,7 @@ function CopilotPanel({
 
       current.selectMatch(matchId);
       void navigate({ to: "/matches/$matchId", params: { matchId } });
-      outputToolCall({
-        navigated: true,
-        match: getMatchSummary(match),
-        sessionScoped: true,
-      });
+      outputToolCall({ navigated: true, match: getMatchSummary(match), sessionScoped: true });
       return;
     }
 
@@ -1480,6 +1639,7 @@ function CopilotPanel({
       const unavailableMatchIds = requestedMatchIds.filter((matchId) => !validMatchIds.includes(matchId));
 
       if (matches.length < 2) {
+        current.setComparisonReport(null);
         outputToolCall({
           compared: false,
           requestedMatchIds,
@@ -1491,11 +1651,17 @@ function CopilotPanel({
         return;
       }
 
+      const comparisonReport = buildComparisonReport(matches, current.searchRequest);
+      current.setComparisonReport(comparisonReport);
       outputToolCall({
         compared: true,
         requestedMatchIds,
         unavailableMatchIds,
-        comparison: buildCompactComparison(matches),
+        comparison: comparisonReport,
+        comparisonReportAvailable: true,
+        comparisonRoute: "/to-compare",
+        ctaLabel: "Open detailed comparison",
+        guidance: "Ask whether the recruiter wants the detailed report and offer the CTA. The report is session-scoped and not persisted.",
       });
     }
   };
@@ -1636,7 +1802,8 @@ function CopilotPanel({
             const isUser = message.role === "user";
             const text = getUiMessageText(message);
             const activities = isUser ? [] : getMessageActivities(message);
-            if (!text && activities.length === 0) return null;
+            const comparisonActivities = isUser ? [] : getComparisonReportActivities(message);
+            if (!text && activities.length === 0 && comparisonActivities.length === 0) return null;
             return (
               <div key={message.id} className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
                 <span className="ml-1 text-xs font-semibold uppercase tracking-wider text-muted">
@@ -1655,6 +1822,9 @@ function CopilotPanel({
                 ) : null}
                 {activities.map((activity, index) => (
                   <CopilotActivityCard key={`${message.id}-activity-${index}`} activity={activity} />
+                ))}
+                {comparisonActivities.map((activity, index) => (
+                  <CopilotComparisonReportActivityCard key={`${message.id}-comparison-${index}`} activity={activity} />
                 ))}
               </div>
             );
@@ -1752,7 +1922,13 @@ const matchRoute = createRoute({
   component: MatchDetailRoute,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, talentPoolRoute, matchRoute]);
+const compareRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/to-compare",
+  component: ComparisonReportRoute,
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, talentPoolRoute, matchRoute, compareRoute]);
 const router = createRouter({ routeTree });
 
 declare module "@tanstack/react-router" {
