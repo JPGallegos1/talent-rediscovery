@@ -111,30 +111,48 @@ function formatUiMessagePart(part: unknown): string {
     return part.text;
   }
 
-  if (part.type === "tool-createSearchRequest") {
-    const output = isObject(part.output) ? part.output : null;
-    const input = isObject(part.input) ? part.input : null;
-    const searchRequest = typeof output?.searchRequest === "string"
-      ? output.searchRequest
-      : typeof input?.searchRequest === "string"
-        ? input.searchRequest
-        : "";
+  return "";
+}
 
-    if (!searchRequest) {
-      return "";
-    }
-
-    const matchCount = typeof output?.matchCount === "number" ? output.matchCount : 0;
-    const applied = output?.applied === true;
-
-    if (applied && matchCount > 0) {
-      return `I found ${matchCount} Match${matchCount === 1 ? "" : "es"} for this Search Request: "${searchRequest}".\n\nReview the Shortlist on the left for evidence, gaps, risks, and Suggested Next Actions.`;
-    }
-
-    return `I drafted this Search Request: "${searchRequest}".\n\nI could not find enough Candidate Record evidence to create a Shortlist.`;
+function getToolPartValue(part: unknown, key: "input" | "output"): Record<string, unknown> | null {
+  if (!isObject(part) || !isObject(part[key])) {
+    return null;
   }
 
-  return "";
+  return part[key];
+}
+
+function getCreateSearchRequestActivity(part: unknown) {
+  if (!isObject(part) || part.type !== "tool-createSearchRequest") {
+    return null;
+  }
+
+  const output = getToolPartValue(part, "output");
+  const input = getToolPartValue(part, "input");
+  const searchRequest = typeof output?.searchRequest === "string"
+    ? output.searchRequest
+    : typeof input?.searchRequest === "string"
+      ? input.searchRequest
+      : "";
+
+  if (!searchRequest) {
+    return null;
+  }
+
+  const matchCount = typeof output?.matchCount === "number" ? output.matchCount : null;
+  const applied = output?.applied === true;
+  const isComplete = !!output;
+
+  return {
+    searchRequest,
+    matchCount,
+    applied,
+    isComplete,
+  };
+}
+
+function getMessageActivities(message: { parts: unknown[] }) {
+  return message.parts.map(getCreateSearchRequestActivity).filter((activity) => activity !== null);
 }
 
 function classifyCopilotError(error: unknown): CopilotErrorState {
@@ -293,118 +311,115 @@ function HomeRoute() {
   const { session } = useAppSession();
   const [copilotError, setCopilotError] = useState<CopilotErrorState | null>(null);
   const hasTalentPool = session.candidateRecordCount > 0;
+  const clearCopilotError = () => setCopilotError(null);
+
+  let workspace: ReactNode;
 
   if (copilotError?.kind === "server") {
-    return <CopilotServerErrorHomeView error={copilotError} onRetry={() => setCopilotError(null)} />;
+    workspace = <CopilotServerErrorHomeView error={copilotError} onRetry={clearCopilotError} />;
+  } else if (!hasTalentPool) {
+    workspace = <EmptyHomeView />;
+  } else if (session.shortlist.length > 0) {
+    workspace = <ShortlistHomeView />;
+  } else {
+    workspace = <DataReadyHomeView />;
   }
-
-  if (!hasTalentPool) {
-    return <EmptyHomeView copilotError={copilotError} onCopilotError={setCopilotError} onClearCopilotError={() => setCopilotError(null)} />;
-  }
-
-  if (session.shortlist.length > 0) {
-    return <ShortlistHomeView copilotError={copilotError} onCopilotError={setCopilotError} onClearCopilotError={() => setCopilotError(null)} />;
-  }
-
-  return <DataReadyHomeView copilotError={copilotError} onCopilotError={setCopilotError} onClearCopilotError={() => setCopilotError(null)} />;
-}
-
-type HomeCopilotProps = {
-  copilotError: CopilotErrorState | null;
-  onCopilotError: (error: CopilotErrorState) => void;
-  onClearCopilotError: () => void;
-};
-
-function EmptyHomeView({ copilotError, onCopilotError, onClearCopilotError }: HomeCopilotProps) {
-  const { session } = useAppSession();
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
-      <section className="flex flex-1 flex-col px-0 lg:px-10">
-        <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center">
-          <div className="text-center">
-            <div className="mb-6 inline-flex items-center justify-center rounded-2xl bg-surface-low p-5 shadow-stitch-card">
-              <span className="material-symbols-outlined text-[40px] text-earth">database_off</span>
-            </div>
-            <h2 className="font-serif text-[40px] font-bold leading-10 tracking-[-0.02em] text-slate">
-              Your Talent Pool is Empty
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg leading-7 text-muted">
-              Upload your existing Candidate Records as a CSV to unlock evidence-grounded matching and semantic search through your Talent Pool.
-            </p>
-          </div>
-
-          <div className="mt-8 flex flex-col items-center gap-4">
-            <Link
-              to="/talent-pool"
-              className="inline-flex items-center gap-3 rounded-xl bg-slate-strong px-8 py-4 text-sm font-bold text-white shadow-lg transition hover:bg-slate hover:-translate-y-0.5"
-            >
-              <span className="material-symbols-outlined text-[24px]">cloud_upload</span>
-              <span className="text-base">Upload Talent Pool (CSV)</span>
-            </Link>
-
-            <div className="flex items-center gap-2 text-xs font-semibold text-muted-soft">
-              <span className="material-symbols-outlined text-[16px]">lock</span>
-              <span>Your data is processed in-memory only and remains strictly confidential.</span>
-            </div>
-          </div>
-
-          <div className="mt-8 grid gap-6 md:grid-cols-3">
-            <div className="relative overflow-hidden rounded-xl border border-outline-soft/10 bg-surface-lowest p-6 shadow-stitch-card">
-              <div className="absolute top-0 right-0 -mr-4 -mt-4 size-24 rounded-bl-full bg-surface-variant/20" />
-              <div className="relative z-10 mb-4 flex size-10 items-center justify-center rounded-full bg-surface text-lg font-bold text-slate">
-                1
-              </div>
-              <h3 className="relative z-10 font-serif text-xl font-semibold text-slate">Upload Data</h3>
-              <p className="relative z-10 mt-2 text-sm leading-6 text-muted">
-                Securely import your historical candidate CSV. Fields are mapped automatically.
-              </p>
-            </div>
-            <div className="relative overflow-hidden rounded-xl border border-outline-soft/10 bg-surface-lowest p-6 shadow-stitch-card">
-              <div className="absolute top-0 right-0 -mr-4 -mt-4 size-24 rounded-bl-full bg-surface-variant/20" />
-              <div className="relative z-10 mb-4 flex size-10 items-center justify-center rounded-full bg-surface text-lg font-bold text-slate">
-                2
-              </div>
-              <h3 className="relative z-10 font-serif text-xl font-semibold text-slate">Describe Need</h3>
-              <p className="relative z-10 mt-2 text-sm leading-6 text-muted">
-                Describe the role, required skills, and background using natural language.
-              </p>
-            </div>
-            <div className="relative overflow-hidden rounded-xl border border-outline-soft/10 bg-surface-lowest p-6 shadow-stitch-card">
-              <div className="absolute top-0 right-0 -mr-4 -mt-4 size-24 rounded-bl-full bg-surface-variant/20" />
-              <div className="relative z-10 mb-4 flex size-10 items-center justify-center rounded-full bg-surface text-lg font-bold text-slate">
-                3
-              </div>
-              <h3 className="relative z-10 font-serif text-xl font-semibold text-slate">Review Matches</h3>
-              <p className="relative z-10 mt-2 text-sm leading-6 text-muted">
-                Get a ranked Shortlist of Matches with evidence-based reasoning for each one.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-8 flex justify-center gap-6 border-t border-outline-soft/10 pt-6">
-            <span className="flex items-center gap-2 text-xs font-semibold text-slate">
-              <span className="material-symbols-outlined text-[18px]">menu_book</span>
-              Learn about Talent Rediscovery
-            </span>
-            <span className="flex items-center gap-2 text-xs font-semibold text-slate">
-              <span className="material-symbols-outlined text-[18px]">policy</span>
-              Privacy & Security
-            </span>
-          </div>
-        </div>
-      </section>
-
-      <CopilotPanel mode="empty" copilotError={copilotError} onCopilotError={onCopilotError} onClearCopilotError={onClearCopilotError} />
-    </div>
+    <HomeShell>
+      {workspace}
+      <CopilotPanel mode={hasTalentPool ? "active" : "empty"} copilotError={copilotError} onCopilotError={setCopilotError} onClearCopilotError={clearCopilotError} />
+    </HomeShell>
   );
 }
 
-function DataReadyHomeView({ copilotError, onCopilotError, onClearCopilotError }: HomeCopilotProps) {
+function HomeShell({ children }: { children: ReactNode }) {
+  return <div className="flex min-h-0 flex-1 flex-col xl:flex-row">{children}</div>;
+}
+
+function EmptyHomeView() {
+  return (
+    <section className="flex flex-1 flex-col px-0 lg:px-10">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center">
+        <div className="text-center">
+          <div className="mb-6 inline-flex items-center justify-center rounded-2xl bg-surface-low p-5 shadow-stitch-card">
+            <span className="material-symbols-outlined text-[40px] text-earth">database_off</span>
+          </div>
+          <h2 className="font-serif text-[40px] font-bold leading-10 tracking-[-0.02em] text-slate">
+            Your Talent Pool is Empty
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-lg leading-7 text-muted">
+            Upload your existing Candidate Records as a CSV to unlock evidence-grounded matching and semantic search through your Talent Pool.
+          </p>
+        </div>
+
+        <div className="mt-8 flex flex-col items-center gap-4">
+          <Link
+            to="/talent-pool"
+            className="inline-flex items-center gap-3 rounded-xl bg-slate-strong px-8 py-4 text-sm font-bold text-white shadow-lg transition hover:bg-slate hover:-translate-y-0.5"
+          >
+            <span className="material-symbols-outlined text-[24px]">cloud_upload</span>
+            <span className="text-base">Upload Talent Pool (CSV)</span>
+          </Link>
+
+          <div className="flex items-center gap-2 text-xs font-semibold text-muted-soft">
+            <span className="material-symbols-outlined text-[16px]">lock</span>
+            <span>Your data is processed in-memory only and remains strictly confidential.</span>
+          </div>
+        </div>
+
+        <div className="mt-8 grid gap-6 md:grid-cols-3">
+          <div className="relative overflow-hidden rounded-xl border border-outline-soft/10 bg-surface-lowest p-6 shadow-stitch-card">
+            <div className="absolute top-0 right-0 -mr-4 -mt-4 size-24 rounded-bl-full bg-surface-variant/20" />
+            <div className="relative z-10 mb-4 flex size-10 items-center justify-center rounded-full bg-surface text-lg font-bold text-slate">
+              1
+            </div>
+            <h3 className="relative z-10 font-serif text-xl font-semibold text-slate">Upload Data</h3>
+            <p className="relative z-10 mt-2 text-sm leading-6 text-muted">
+              Securely import your historical candidate CSV. Fields are mapped automatically.
+            </p>
+          </div>
+          <div className="relative overflow-hidden rounded-xl border border-outline-soft/10 bg-surface-lowest p-6 shadow-stitch-card">
+            <div className="absolute top-0 right-0 -mr-4 -mt-4 size-24 rounded-bl-full bg-surface-variant/20" />
+            <div className="relative z-10 mb-4 flex size-10 items-center justify-center rounded-full bg-surface text-lg font-bold text-slate">
+              2
+            </div>
+            <h3 className="relative z-10 font-serif text-xl font-semibold text-slate">Describe Need</h3>
+            <p className="relative z-10 mt-2 text-sm leading-6 text-muted">
+              Describe the role, required skills, and background using natural language.
+            </p>
+          </div>
+          <div className="relative overflow-hidden rounded-xl border border-outline-soft/10 bg-surface-lowest p-6 shadow-stitch-card">
+            <div className="absolute top-0 right-0 -mr-4 -mt-4 size-24 rounded-bl-full bg-surface-variant/20" />
+            <div className="relative z-10 mb-4 flex size-10 items-center justify-center rounded-full bg-surface text-lg font-bold text-slate">
+              3
+            </div>
+            <h3 className="relative z-10 font-serif text-xl font-semibold text-slate">Review Matches</h3>
+            <p className="relative z-10 mt-2 text-sm leading-6 text-muted">
+              Get a ranked Shortlist of Matches with evidence-based reasoning for each one.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-8 flex justify-center gap-6 border-t border-outline-soft/10 pt-6">
+          <span className="flex items-center gap-2 text-xs font-semibold text-slate">
+            <span className="material-symbols-outlined text-[18px]">menu_book</span>
+            Learn about Talent Rediscovery
+          </span>
+          <span className="flex items-center gap-2 text-xs font-semibold text-slate">
+            <span className="material-symbols-outlined text-[18px]">policy</span>
+            Privacy & Security
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DataReadyHomeView() {
   const { session } = useAppSession();
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
       <section className="flex flex-1 flex-col overflow-y-auto px-0 lg:px-10">
         <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center">
           <div className="relative overflow-hidden rounded-xl border border-outline-soft/20 bg-surface-lowest p-8 text-center shadow-stitch-card">
@@ -441,17 +456,13 @@ function DataReadyHomeView({ copilotError, onCopilotError, onClearCopilotError }
           </div>
         </div>
       </section>
-
-      <CopilotPanel mode="active" copilotError={copilotError} onCopilotError={onCopilotError} onClearCopilotError={onClearCopilotError} />
-    </div>
   );
 }
 
-function ShortlistHomeView({ copilotError, onCopilotError, onClearCopilotError }: HomeCopilotProps) {
+function ShortlistHomeView() {
   const { session } = useAppSession();
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
       <section className="flex-1 space-y-6 overflow-y-auto px-0 lg:px-10">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -476,9 +487,6 @@ function ShortlistHomeView({ copilotError, onCopilotError, onClearCopilotError }
           ))}
         </div>
       </section>
-
-      <CopilotPanel mode="active" copilotError={copilotError} onCopilotError={onCopilotError} onClearCopilotError={onClearCopilotError} />
-    </div>
   );
 }
 
@@ -582,8 +590,7 @@ function getStrengthClass(strength: Match["strength"]) {
 
 function CopilotServerErrorHomeView({ error, onRetry }: { error: CopilotErrorState; onRetry: () => void }) {
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] flex-col xl:flex-row">
-      <section className="relative flex flex-1 items-center justify-center overflow-hidden px-6 py-16 text-center">
+      <section className="relative flex min-h-[calc(100vh-8rem)] flex-1 items-center justify-center overflow-hidden px-6 py-16 text-center">
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.035]">
           <span className="material-symbols-outlined text-[42vw] font-light">database</span>
         </div>
@@ -614,9 +621,6 @@ function CopilotServerErrorHomeView({ error, onRetry }: { error: CopilotErrorSta
           </div>
         </div>
       </section>
-
-      <CopilotPanel mode="active" copilotError={error} onCopilotError={() => undefined} onClearCopilotError={onRetry} />
-    </div>
   );
 }
 
@@ -1237,6 +1241,31 @@ function CopilotErrorMessage({ error, onRetry }: { error: CopilotErrorState; onR
   );
 }
 
+function CopilotActivityCard({ activity }: { activity: NonNullable<ReturnType<typeof getCreateSearchRequestActivity>> }) {
+  const matchSummary = activity.isComplete
+    ? activity.applied && typeof activity.matchCount === "number" && activity.matchCount > 0
+      ? `${activity.matchCount} evidence-grounded Match${activity.matchCount === 1 ? "" : "es"} returned in the Shortlist.`
+      : "No evidence-grounded Matches were returned for this Search Request."
+    : "Evaluating Candidate Records against the interpreted Search Criteria.";
+
+  return (
+    <div className="max-w-[92%] rounded-xl border border-outline-soft/20 bg-surface-high/50 px-4 py-3 text-sm leading-6 text-muted shadow-sm">
+      <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate">
+        <span className={`material-symbols-outlined text-[16px] ${activity.isComplete ? "text-evidence" : "animate-pulse text-earth"}`}>
+          {activity.isComplete ? "check_circle" : "hourglass_top"}
+        </span>
+        Intelligence Layer activity
+      </div>
+      <div className="space-y-1">
+        <p>
+          Created Search Request: <span className="font-semibold text-slate">{activity.searchRequest}</span>
+        </p>
+        <p>{matchSummary}</p>
+      </div>
+    </div>
+  );
+}
+
 function CopilotPanel({
   mode,
   copilotError,
@@ -1351,11 +1380,13 @@ function CopilotPanel({
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const isStreaming = status === "streaming" || status === "submitted";
+  const isProcessing = status === "streaming" || status === "submitted";
   const visibleCopilotError = copilotError;
-  const disablesComposer = isStreaming || visibleCopilotError?.kind === "offline" || visibleCopilotError?.kind === "server";
+  const disablesComposer = isProcessing || visibleCopilotError?.kind === "offline" || visibleCopilotError?.kind === "server";
   const composerPlaceholder =
-    visibleCopilotError?.kind === "offline"
+    isProcessing
+      ? "Copilot is analyzing the Talent Pool..."
+      : visibleCopilotError?.kind === "offline"
       ? "Waiting for connection..."
       : visibleCopilotError?.kind === "server"
         ? "Copilot is temporarily unavailable..."
@@ -1424,9 +1455,9 @@ function CopilotPanel({
           <div>
             <h3 className="font-serif text-xl font-semibold">Copilot</h3>
             <div className="mt-0.5 flex items-center gap-1.5">
-              <span className={`size-2 rounded-full ${isStreaming ? "bg-evidence" : visibleCopilotError ? "bg-risk" : "bg-muted-soft"}`} />
+              <span className={`size-2 rounded-full ${isProcessing ? "bg-evidence" : visibleCopilotError ? "bg-risk" : "bg-muted-soft"}`} />
               <span className="text-xs font-semibold text-muted">
-                {isStreaming ? "Thinking" : visibleCopilotError?.kind === "offline" ? "Offline" : visibleCopilotError ? "Needs attention" : "Ready"}
+                {isProcessing ? "Analyzing" : visibleCopilotError?.kind === "offline" ? "Offline" : visibleCopilotError ? "Needs attention" : "Ready"}
               </span>
             </div>
           </div>
@@ -1452,30 +1483,48 @@ function CopilotPanel({
           messages.filter((m) => m.role === "user" || m.role === "assistant").map((message) => {
             const isUser = message.role === "user";
             const text = getUiMessageText(message);
-            if (!text) return null;
+            const activities = isUser ? [] : getMessageActivities(message);
+            if (!text && activities.length === 0) return null;
             return (
               <div key={message.id} className={`flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
                 <span className="ml-1 text-xs font-semibold uppercase tracking-wider text-muted">
                   {isUser ? "You" : "Copilot"}
                 </span>
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm whitespace-pre-wrap ${
-                    isUser
-                      ? "rounded-tr-sm bg-slate text-white"
-                      : "rounded-tl-sm border border-outline-soft/20 bg-surface-lowest text-ink"
-                  }`}
-                >
-                  {text}
-                </div>
+                {text ? (
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 shadow-sm whitespace-pre-wrap ${
+                      isUser
+                        ? "rounded-tr-sm bg-slate text-white"
+                        : "rounded-tl-sm border border-outline-soft/20 bg-surface-lowest text-ink"
+                    }`}
+                  >
+                    {text}
+                  </div>
+                ) : null}
+                {activities.map((activity, index) => (
+                  <CopilotActivityCard key={`${message.id}-activity-${index}`} activity={activity} />
+                ))}
               </div>
             );
           })
         )}
 
-        {isStreaming ? (
-          <div className="flex items-start gap-2 rounded-lg bg-surface-high/50 px-4 py-3 text-sm leading-6 text-muted">
-            <span className="material-symbols-outlined shrink-0 animate-pulse text-[16px]">psychology</span>
-            <span>Copilot is thinking...</span>
+        {isProcessing ? (
+          <div className="space-y-3 rounded-lg bg-surface-high/50 px-4 py-3 text-sm leading-6 text-muted">
+            <div className="flex items-start gap-2">
+              <span className="material-symbols-outlined shrink-0 animate-pulse text-[16px]">psychology</span>
+              <span>Copilot is analyzing the Talent Pool.</span>
+            </div>
+            <div className="grid gap-2 text-xs font-semibold text-muted-soft">
+              <span className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[14px] text-evidence">check_circle</span>
+                Reading the current Search Request context
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="material-symbols-outlined animate-pulse text-[14px] text-earth">hourglass_top</span>
+                Preparing allowed Intelligence Layer actions
+              </span>
+            </div>
           </div>
         ) : null}
 
@@ -1516,8 +1565,8 @@ function CopilotPanel({
           </div>
         </div>
         <p className="mt-2 px-1 text-xs text-muted-soft">
-          {isStreaming
-            ? "Copilot is responding..."
+          {isProcessing
+            ? "Copilot is analyzing the Talent Pool. The composer will reopen when this response completes."
             : visibleCopilotError?.kind === "offline"
               ? "Chat is read-only until the Intelligence Layer reconnects."
               : visibleCopilotError?.kind === "server"
