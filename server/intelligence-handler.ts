@@ -9,31 +9,31 @@ export const intelligenceActionTools = {
     }),
   }),
   navigateToMatch: tool({
-    description: "Navigate to a specific Match's detail view. Use this when the recruiter asks to see a Match in detail.",
+    description: "Navigate to a specific Match's detail view from the current Shortlist. Use only matchIds shown in the current session context.",
     inputSchema: z.object({
       matchId: z.string().describe("The matchId of the Match to navigate to (e.g. 'row-2')."),
     }),
   }),
   explainMatch: tool({
-    description: "Explain why a specific Candidate Record was matched, showing reasons, evidence, gaps, and risks.",
+    description: "Explain why a specific Candidate Record was matched. Use only the existing Match data for the requested matchId.",
     inputSchema: z.object({
       matchId: z.string().describe("The matchId of the Match to explain."),
     }),
   }),
   compareMatches: tool({
-    description: "Compare two or more Matches side by side, highlighting differences in strengths, gaps, and risks.",
+    description: "Compare two or more existing Matches from the current Shortlist using explicit matchIds. Do not infer missing matchIds.",
     inputSchema: z.object({
       matchIds: z.array(z.string()).describe("The matchIds of the Matches to compare (2 or more)."),
     }),
   }),
   requestMessageDraft: tool({
-    description: "Generate an editable message draft for a Match. Only use when the Suggested Next Action is contact or recontact.",
+    description: "Generate an editable message draft for a Match. Only use for current Shortlist Matches whose Suggested Next Action supports contact or recontact.",
     inputSchema: z.object({
       matchId: z.string().describe("The matchId of the Match to draft a message for."),
     }),
   }),
   showCurrentCriteria: tool({
-    description: "Display the currently interpreted Search Criteria for transparency. Use when the recruiter asks what criteria were extracted.",
+    description: "Display the currently interpreted Search Criteria as read-only session information. Do not offer manual criteria editing.",
     inputSchema: z.object({}),
   }),
 } satisfies ToolSet;
@@ -57,6 +57,7 @@ export function buildSystemPrompt(context: {
       ? context.shortlist
           .map((m: any, i: number) => {
             return `  Match ${i + 1}: ${m.candidateRecordLabel} (${m.strength})
+    Match ID: ${m.matchId}
     Role: ${m.currentRole || "Not provided"}
     Reasons: ${m.reasons.slice(0, 3).join("; ")}
     Gaps: ${m.gaps.slice(0, 2).join("; ") || "None"}
