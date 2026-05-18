@@ -2,33 +2,15 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type ChatAddToolOutputFunction, type ChatOnToolCallCallback, type UIMessage } from "ai";
 import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvider } from "@tanstack/react-router";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
+import { useAppStore, type CopilotErrorState } from "./app-store.js";
 import { parseCsvTalentPool, type CandidateRecord } from "./csv-candidate-records.js";
 import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "./message-draft.js";
 import { interpretSearchCriteria, type SearchCriteria } from "./search-criteria.js";
 import { buildShortlist, type Match } from "./shortlist-matches.js";
 import { toCompactShortlistContext } from "./intelligence-layer.js";
 import "./styles.css";
-
-type AppSession = {
-  talentPoolFileName: string | null;
-  candidateRecordCount: number;
-  candidateRecords: CandidateRecord[];
-  searchRequest: string;
-  searchCriteria: SearchCriteria | null;
-  shortlist: Match[];
-  selectedMatchId: string | null;
-  copilotTranscript: { speaker: "recruiter" | "copilot"; text: string }[];
-};
-
-type CopilotErrorKind = "client" | "server" | "offline";
-
-type CopilotErrorState = {
-  kind: CopilotErrorKind;
-  message: string;
-  status?: number;
-};
 
 type CopilotErrorPayload = {
   error?: {
@@ -45,46 +27,6 @@ class CopilotApiError extends Error {
     this.name = "CopilotApiError";
     this.state = state;
   }
-}
-
-type AppSessionContextValue = {
-  session: AppSession;
-  setSession: Dispatch<SetStateAction<AppSession>>;
-};
-
-const initialSession: AppSession = {
-  talentPoolFileName: null,
-  candidateRecordCount: 0,
-  candidateRecords: [],
-  searchRequest: "",
-  searchCriteria: null,
-  shortlist: [],
-  selectedMatchId: null,
-  copilotTranscript: [
-    {
-      speaker: "copilot",
-      text: "Load a CSV Talent Pool File, then run a Search Request to create an evidence-grounded Shortlist.",
-    },
-  ],
-};
-
-const AppSessionContext = createContext<AppSessionContextValue | null>(null);
-
-function AppSessionProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<AppSession>(initialSession);
-  const value = useMemo(() => ({ session, setSession }), [session]);
-
-  return <AppSessionContext.Provider value={value}>{children}</AppSessionContext.Provider>;
-}
-
-function useAppSession() {
-  const value = useContext(AppSessionContext);
-
-  if (!value) {
-    throw new Error("useAppSession must be used inside AppSessionProvider");
-  }
-
-  return value;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -189,21 +131,19 @@ async function parseCopilotErrorResponse(response: Response): Promise<CopilotErr
 
 function RootLayout() {
   return (
-    <AppSessionProvider>
-      <div className="min-h-screen bg-paper text-ink lg:h-screen lg:overflow-hidden">
-        <div className="flex min-h-screen flex-col lg:h-screen lg:flex-row">
-          <SideNav />
+    <div className="min-h-screen bg-paper text-ink lg:h-screen lg:overflow-hidden">
+      <div className="flex min-h-screen flex-col lg:h-screen lg:flex-row">
+        <SideNav />
 
-          <div className="flex min-w-0 flex-1 flex-col lg:ml-[280px]">
-            <TopAppBar />
-            <MobileNav />
-            <main className="custom-scrollbar min-w-0 flex-1 overflow-y-auto bg-paper px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
-              <Outlet />
-            </main>
-          </div>
+        <div className="flex min-w-0 flex-1 flex-col lg:ml-[280px]">
+          <TopAppBar />
+          <MobileNav />
+          <main className="custom-scrollbar min-w-0 flex-1 overflow-y-auto bg-paper px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
+            <Outlet />
+          </main>
         </div>
       </div>
-    </AppSessionProvider>
+    </div>
   );
 }
 
@@ -308,10 +248,17 @@ function NavLink({ to, label, icon, compact = false }: { to: "/" | "/talent-pool
 }
 
 function HomeRoute() {
-  const { session } = useAppSession();
-  const [copilotError, setCopilotError] = useState<CopilotErrorState | null>(null);
-  const hasTalentPool = session.candidateRecordCount > 0;
+  const candidateRecordCount = useAppStore((state) => state.candidateRecordCount);
+  const shortlist = useAppStore((state) => state.shortlist);
+  const copilotError = useAppStore((state) => state.copilotError);
+  const setCopilotError = useAppStore((state) => state.setCopilotError);
+  const selectMatch = useAppStore((state) => state.selectMatch);
+  const hasTalentPool = candidateRecordCount > 0;
   const clearCopilotError = () => setCopilotError(null);
+
+  useEffect(() => {
+    selectMatch(null);
+  }, [selectMatch]);
 
   let workspace: ReactNode;
 
@@ -319,7 +266,7 @@ function HomeRoute() {
     workspace = <CopilotServerErrorHomeView error={copilotError} onRetry={clearCopilotError} />;
   } else if (!hasTalentPool) {
     workspace = <EmptyHomeView />;
-  } else if (session.shortlist.length > 0) {
+  } else if (shortlist.length > 0) {
     workspace = <ShortlistHomeView />;
   } else {
     workspace = <DataReadyHomeView />;
@@ -417,7 +364,8 @@ function EmptyHomeView() {
 }
 
 function DataReadyHomeView() {
-  const { session } = useAppSession();
+  const candidateRecordCount = useAppStore((state) => state.candidateRecordCount);
+  const talentPoolFileName = useAppStore((state) => state.talentPoolFileName);
 
   return (
       <section className="flex flex-1 flex-col overflow-y-auto px-0 lg:px-10">
@@ -428,7 +376,7 @@ function DataReadyHomeView() {
                 <span className="material-symbols-outlined text-[32px]">database</span>
               </div>
               <h3 className="font-serif text-[40px] font-bold leading-10 tracking-[-0.02em] text-slate">
-                {session.candidateRecordCount}
+                {candidateRecordCount}
               </h3>
               <p className="mt-2 font-serif text-xl font-semibold text-muted">records ready to search</p>
               <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-muted">
@@ -441,12 +389,12 @@ function DataReadyHomeView() {
             <div className="rounded-lg border border-outline-soft/10 bg-surface-low p-4">
               <span className="material-symbols-outlined mb-2 text-earth">auto_awesome</span>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted">Normalized</p>
-              <p className="mt-1 font-serif text-2xl font-semibold text-slate">{session.candidateRecordCount}</p>
+              <p className="mt-1 font-serif text-2xl font-semibold text-slate">{candidateRecordCount}</p>
             </div>
             <div className="rounded-lg border border-outline-soft/10 bg-surface-low p-4">
               <span className="material-symbols-outlined mb-2 text-earth">folder_open</span>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted">File</p>
-              <p className="mt-1 truncate text-sm font-semibold text-slate">{session.talentPoolFileName || "CSV upload"}</p>
+              <p className="mt-1 truncate text-sm font-semibold text-slate">{talentPoolFileName || "CSV upload"}</p>
             </div>
             <div className="rounded-lg border border-outline-soft/10 bg-surface-low p-4">
               <span className="material-symbols-outlined mb-2 text-earth">history</span>
@@ -460,7 +408,9 @@ function DataReadyHomeView() {
 }
 
 function ShortlistHomeView() {
-  const { session } = useAppSession();
+  const searchRequest = useAppStore((state) => state.searchRequest);
+  const searchCriteria = useAppStore((state) => state.searchCriteria);
+  const shortlist = useAppStore((state) => state.shortlist);
 
   return (
       <section className="flex-1 space-y-6 overflow-y-auto px-0 lg:px-10">
@@ -471,18 +421,18 @@ function ShortlistHomeView() {
               Evidence-grounded Matches
             </h2>
             <p className="mt-2 text-base leading-7 text-muted">
-              Search Request: <span className="font-semibold text-slate">{session.searchRequest}</span>
+              Search Request: <span className="font-semibold text-slate">{searchRequest}</span>
             </p>
           </div>
           <span className="w-fit rounded-full bg-surface-high px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted">
-            {session.shortlist.length} {session.shortlist.length === 1 ? "Match" : "Matches"} returned
+            {shortlist.length} {shortlist.length === 1 ? "Match" : "Matches"} returned
           </span>
         </div>
 
-        <SearchCriteriaSummary searchCriteria={session.searchCriteria} />
+        <SearchCriteriaSummary searchCriteria={searchCriteria} />
 
         <div className="space-y-4">
-          {session.shortlist.map((match, index) => (
+          {shortlist.map((match, index) => (
             <ShortlistMatchCard key={getMatchId(match)} match={match} index={index} />
           ))}
         </div>
@@ -625,10 +575,18 @@ function CopilotServerErrorHomeView({ error, onRetry }: { error: CopilotErrorSta
 }
 
 function TalentPoolRoute() {
-  const { session, setSession } = useAppSession();
+  const candidateRecords = useAppStore((state) => state.candidateRecords);
+  const talentPoolFileName = useAppStore((state) => state.talentPoolFileName);
+  const loadTalentPool = useAppStore((state) => state.loadTalentPool);
+  const clearTalentPool = useAppStore((state) => state.clearTalentPool);
+  const selectMatch = useAppStore((state) => state.selectMatch);
   const [uploadStatus, setUploadStatus] = useState("Upload a CSV Talent Pool File to start.");
   const [uploadError, setUploadError] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+
+  useEffect(() => {
+    selectMatch(null);
+  }, [selectMatch]);
 
   async function handleTalentPoolFile(file: File | null) {
     if (!file) {
@@ -646,29 +604,11 @@ function TalentPoolRoute() {
     try {
       const csvText = await file.text();
       const parsed = parseCsvTalentPool(csvText);
-      setSession((current) => ({
-        ...current,
-        talentPoolFileName: file.name,
-        candidateRecordCount: parsed.candidateRecords.length,
-        candidateRecords: parsed.candidateRecords,
-        searchRequest: "",
-        searchCriteria: null,
-        shortlist: [],
-        selectedMatchId: null,
-      }));
+      loadTalentPool({ talentPoolFileName: file.name, candidateRecords: parsed.candidateRecords });
       setUploadStatus(`Parsed ${parsed.candidateRecords.length} Candidate Records from ${file.name}.`);
       setUploadError(false);
     } catch (error) {
-      setSession((current) => ({
-        ...current,
-        talentPoolFileName: null,
-        candidateRecordCount: 0,
-        candidateRecords: [],
-        searchRequest: "",
-        searchCriteria: null,
-        shortlist: [],
-        selectedMatchId: null,
-      }));
+      clearTalentPool();
       setUploadStatus(error instanceof Error ? error.message : "The Talent Pool File could not be parsed.");
       setUploadError(true);
     }
@@ -724,7 +664,7 @@ function TalentPoolRoute() {
         ) : null}
       </label>
 
-      <CandidateRecordTable records={session.candidateRecords} uploadFileName={session.talentPoolFileName} />
+      <CandidateRecordTable records={candidateRecords} uploadFileName={talentPoolFileName} />
     </section>
   );
 }
@@ -936,10 +876,18 @@ function normalizeSourceValue(source: unknown): string {
 
 function MatchDetailRoute() {
   const { matchId } = matchRoute.useParams();
-  const { session } = useAppSession();
-  const [draftText, setDraftText] = useState("");
-  const [draftStatus, setDraftStatus] = useState("Talent Rediscovery never sends outreach automatically.");
-  const match = session.shortlist.find((candidateMatch) => getMatchId(candidateMatch) === matchId);
+  const shortlist = useAppStore((state) => state.shortlist);
+  const searchRequest = useAppStore((state) => state.searchRequest);
+  const draftText = useAppStore((state) => state.messageDraftsByMatchId[matchId] || "");
+  const setMessageDraft = useAppStore((state) => state.setMessageDraft);
+  const selectMatch = useAppStore((state) => state.selectMatch);
+  const match = shortlist.find((candidateMatch) => getMatchId(candidateMatch) === matchId);
+
+  useEffect(() => {
+    selectMatch(matchId);
+
+    return () => selectMatch(null);
+  }, [matchId, selectMatch]);
 
   if (match) {
     const isDraftable = canDraftMessageFromSuggestedNextAction(match.suggestedNextAction);
@@ -950,10 +898,9 @@ function MatchDetailRoute() {
       }
 
       try {
-        setDraftText(draftMessageFromMatch({ ...match, searchRequest: session.searchRequest }));
-        setDraftStatus("Editable draft created for recruiter review. It has not been sent.");
-      } catch (error) {
-        setDraftStatus(error instanceof Error ? error.message : "The editable draft could not be created.");
+        setMessageDraft(matchId, draftMessageFromMatch({ ...match, searchRequest }));
+      } catch {
+        return;
       }
     }
 
@@ -962,7 +909,7 @@ function MatchDetailRoute() {
         <div className="mb-6 flex items-center gap-2 text-sm text-muted">
           <Link to="/" className="flex items-center gap-1 text-muted transition hover:text-slate">
             <span className="material-symbols-outlined text-[14px]">arrow_back</span>
-            {session.searchRequest || "Search Request"}
+            {searchRequest || "Search Request"}
           </Link>
           <span>/</span>
           <span className="text-slate">Match Analysis</span>
@@ -1132,7 +1079,7 @@ function MatchDetailRoute() {
                       id="message-draft"
                       className="min-h-36 w-full resize-none rounded-lg border border-outline-soft/30 bg-surface-bright p-3 text-sm leading-6 text-ink outline-none transition focus:border-slate focus:ring-1 focus:ring-slate"
                       value={draftText}
-                      onChange={(event) => setDraftText(event.target.value)}
+                      onChange={(event) => setMessageDraft(matchId, event.target.value)}
                     />
                   ) : (
                     <button
@@ -1277,12 +1224,12 @@ function CopilotPanel({
   onCopilotError: (error: CopilotErrorState) => void;
   onClearCopilotError: () => void;
 }) {
-  const { session, setSession } = useAppSession();
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const [input, setInput] = useState("");
-  const sessionRef = useRef(session);
+  const input = useAppStore((state) => state.copilotInput);
+  const setInput = useAppStore((state) => state.setCopilotInput);
+  const setStoredMessages = useAppStore((state) => state.setCopilotMessages);
+  const initialMessagesRef = useRef(useAppStore.getState().copilotMessages);
   const addToolOutputRef = useRef<ChatAddToolOutputFunction<UIMessage> | null>(null);
-  sessionRef.current = session;
 
   const transport = useMemo(
     () =>
@@ -1307,7 +1254,7 @@ function CopilotPanel({
           return response;
         },
         body: () => {
-          const s = sessionRef.current;
+          const s = useAppStore.getState();
           return {
             sessionContext: {
               searchRequest: s.searchRequest,
@@ -1330,17 +1277,15 @@ function CopilotPanel({
     const searchRequest = typeof input.searchRequest === "string" ? input.searchRequest.trim() : "";
     if (!searchRequest) return;
 
-    const current = sessionRef.current;
+    const current = useAppStore.getState();
     const searchCriteria = interpretSearchCriteria(searchRequest);
     const shortlist = current.candidateRecords.length > 0 ? buildShortlist(current.candidateRecords, searchCriteria) : [];
     const matchCount = shortlist.length;
 
-    setSession({
-      ...current,
+    current.applySearchRequest({
       searchRequest,
       searchCriteria,
       shortlist,
-      selectedMatchId: null,
     });
 
     void addToolOutputRef.current?.({
@@ -1355,6 +1300,7 @@ function CopilotPanel({
   };
 
   const { messages, sendMessage, status, addToolOutput } = useChat({
+    messages: initialMessagesRef.current,
     transport,
     onError: (chatError) => onCopilotError(classifyCopilotError(chatError)),
     onToolCall: handleToolCall,
@@ -1379,6 +1325,10 @@ function CopilotPanel({
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    setStoredMessages(messages);
+  }, [messages, setStoredMessages]);
 
   const isProcessing = status === "streaming" || status === "submitted";
   const visibleCopilotError = copilotError;

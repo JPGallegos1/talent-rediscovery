@@ -14,11 +14,12 @@
     "dev:server": "tsx server/index.ts",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "check": "tsc --noEmit && node --check src/csv-candidate-records.js && node --check src/search-criteria.js && node --check src/shortlist-matches.js && node --check src/message-draft.js && node --check scripts/check-csv-parser.js && node --check scripts/check-search-criteria.js && node --check scripts/check-shortlist-matches.js && node --check scripts/check-message-draft.js",
+    "check": "tsc --noEmit && node --check src/csv-candidate-records.js && node --check src/search-criteria.js && node --check src/shortlist-matches.js && node --check src/message-draft.js && node --check scripts/check-csv-parser.js && node --check scripts/check-search-criteria.js && node --check scripts/check-shortlist-matches.js && node --check scripts/check-message-draft.js && tsx scripts/check-app-store-session.ts",
     "check:csv": "node scripts/check-csv-parser.js",
     "check:search-criteria": "node scripts/check-search-criteria.js",
     "check:shortlist": "node scripts/check-shortlist-matches.js",
-    "check:message-draft": "node scripts/check-message-draft.js"
+    "check:message-draft": "node scripts/check-message-draft.js",
+    "check:app-store": "tsx scripts/check-app-store-session.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.63",
@@ -30,7 +31,8 @@
     "hono": "^4.12.18",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
