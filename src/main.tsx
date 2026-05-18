@@ -1,6 +1,6 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type ChatAddToolOutputFunction, type ChatOnToolCallCallback, type UIMessage } from "ai";
-import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvider } from "@tanstack/react-router";
+import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvider, useNavigate } from "@tanstack/react-router";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
@@ -95,6 +95,82 @@ function getCreateSearchRequestActivity(part: unknown) {
 
 function getMessageActivities(message: { parts: unknown[] }) {
   return message.parts.map(getCreateSearchRequestActivity).filter((activity) => activity !== null);
+}
+
+function getInputString(input: unknown, key: string) {
+  if (!isObject(input)) {
+    return "";
+  }
+
+  const value = input[key];
+
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getInputStringArray(input: unknown, key: string) {
+  if (!isObject(input) || !Array.isArray(input[key])) {
+    return [];
+  }
+
+  return input[key]
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function uniqueValues(values: string[]) {
+  return Array.from(new Set(values));
+}
+
+function getMatchSummary(match: Match) {
+  return {
+    matchId: getMatchId(match),
+    candidateRecordLabel: getCandidateRecordLabel(match),
+    currentRole: match.candidateRecord.canonicalFields.currentRole || "Not provided",
+    strength: match.strength,
+  };
+}
+
+function getAvailableMatchSummaries(shortlist: Match[]) {
+  return shortlist.map(getMatchSummary);
+}
+
+function getMatchExplanation(match: Match) {
+  return {
+    ...getMatchSummary(match),
+    reasons: match.reasons,
+    evidence: match.evidence.map((item) => ({
+      label: item.label,
+      value: item.value,
+      matched: item.matched,
+    })),
+    gaps: match.gaps,
+    risks: match.risks,
+    suggestedNextAction: match.suggestedNextAction,
+  };
+}
+
+function buildCompactComparison(matches: Match[]) {
+  const evidenceByMatch = matches.map((match) => new Set(match.evidence.map((item) => `${item.label}: ${item.matched}`)));
+  const sharedEvidence = matches[0].evidence
+    .map((item) => `${item.label}: ${item.matched}`)
+    .filter((item) => evidenceByMatch.every((items) => items.has(item)));
+
+  return {
+    comparedMatchIds: matches.map(getMatchId),
+    sharedEvidence,
+    matches: matches.map((match) => ({
+      ...getMatchExplanation(match),
+      differentiators: match.evidence
+        .map((item) => `${item.label}: ${item.matched}`)
+        .filter((item) => !sharedEvidence.includes(item)),
+    })),
+    constraints: [
+      "Comparison uses only current Shortlist Match data.",
+      "Match strength remains qualitative: Strong, Possible, or Weak.",
+      "No percentage scores or external candidate claims were introduced.",
+    ],
+  };
 }
 
 function classifyCopilotError(error: unknown): CopilotErrorState {
@@ -1225,6 +1301,7 @@ function CopilotPanel({
   onClearCopilotError: () => void;
 }) {
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const input = useAppStore((state) => state.copilotInput);
   const setInput = useAppStore((state) => state.setCopilotInput);
   const setStoredMessages = useAppStore((state) => state.setCopilotMessages);
@@ -1271,32 +1348,156 @@ function CopilotPanel({
   );
 
   const handleToolCall: ChatOnToolCallCallback<UIMessage> = ({ toolCall }) => {
-    if (toolCall.toolName !== "createSearchRequest") return;
-
-    const input = toolCall.input as { searchRequest?: unknown };
-    const searchRequest = typeof input.searchRequest === "string" ? input.searchRequest.trim() : "";
-    if (!searchRequest) return;
-
     const current = useAppStore.getState();
-    const searchCriteria = interpretSearchCriteria(searchRequest);
-    const shortlist = current.candidateRecords.length > 0 ? buildShortlist(current.candidateRecords, searchCriteria) : [];
-    const matchCount = shortlist.length;
+    const outputToolCall = (output: Record<string, unknown>) => {
+      void addToolOutputRef.current?.({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        output,
+      });
+    };
 
-    current.applySearchRequest({
-      searchRequest,
-      searchCriteria,
-      shortlist,
-    });
+    if (toolCall.toolName === "createSearchRequest") {
+      const searchRequest = getInputString(toolCall.input, "searchRequest");
+      if (!searchRequest) return;
 
-    void addToolOutputRef.current?.({
-      tool: "createSearchRequest",
-      toolCallId: toolCall.toolCallId,
-      output: {
+      const searchCriteria = interpretSearchCriteria(searchRequest);
+      const shortlist = current.candidateRecords.length > 0 ? buildShortlist(current.candidateRecords, searchCriteria) : [];
+      const matchCount = shortlist.length;
+
+      current.applySearchRequest({
+        searchRequest,
+        searchCriteria,
+        shortlist,
+      });
+
+      outputToolCall({
         applied: matchCount > 0,
         searchRequest,
+        searchCriteria,
         matchCount,
-      },
-    });
+        availableMatches: getAvailableMatchSummaries(shortlist),
+      });
+      return;
+    }
+
+    if (toolCall.toolName === "showCurrentCriteria") {
+      outputToolCall({
+        hasCriteria: !!current.searchCriteria,
+        searchRequest: current.searchRequest || null,
+        searchCriteria: current.searchCriteria,
+        readOnly: true,
+        guidance: current.searchCriteria
+          ? "Search Criteria are read-only. Revise the Search Request if the interpretation is wrong."
+          : "No Search Criteria have been interpreted yet. Submit a Search Request to create them.",
+      });
+      return;
+    }
+
+    if (toolCall.toolName === "explainMatch") {
+      const matchId = getInputString(toolCall.input, "matchId");
+      const match = current.shortlist.find((candidateMatch) => getMatchId(candidateMatch) === matchId);
+
+      outputToolCall(match
+        ? {
+            found: true,
+            explanation: getMatchExplanation(match),
+          }
+        : {
+            found: false,
+            requestedMatchId: matchId || null,
+            availableMatches: getAvailableMatchSummaries(current.shortlist),
+            guidance: "Use a Match ID from the current Shortlist. Do not fabricate unavailable Matches.",
+          });
+      return;
+    }
+
+    if (toolCall.toolName === "navigateToMatch") {
+      const matchId = getInputString(toolCall.input, "matchId");
+      const match = current.shortlist.find((candidateMatch) => getMatchId(candidateMatch) === matchId);
+
+      if (!match) {
+        outputToolCall({
+          navigated: false,
+          requestedMatchId: matchId || null,
+          availableMatches: getAvailableMatchSummaries(current.shortlist),
+          guidance: "That Match is not available in the current in-memory Shortlist.",
+        });
+        return;
+      }
+
+      current.selectMatch(matchId);
+      void navigate({ to: "/matches/$matchId", params: { matchId } });
+      outputToolCall({
+        navigated: true,
+        match: getMatchSummary(match),
+        sessionScoped: true,
+      });
+      return;
+    }
+
+    if (toolCall.toolName === "requestMessageDraft") {
+      const matchId = getInputString(toolCall.input, "matchId");
+      const match = current.shortlist.find((candidateMatch) => getMatchId(candidateMatch) === matchId);
+
+      if (!match) {
+        outputToolCall({
+          draftCreated: false,
+          requestedMatchId: matchId || null,
+          availableMatches: getAvailableMatchSummaries(current.shortlist),
+          guidance: "Message drafts are only available for Matches in the current Shortlist.",
+        });
+        return;
+      }
+
+      if (!canDraftMessageFromSuggestedNextAction(match.suggestedNextAction)) {
+        outputToolCall({
+          draftCreated: false,
+          match: getMatchSummary(match),
+          suggestedNextAction: match.suggestedNextAction,
+          guidance: "Editable drafts are unavailable unless the Suggested Next Action supports contact or recontact.",
+        });
+        return;
+      }
+
+      const draftText = draftMessageFromMatch({ ...match, searchRequest: current.searchRequest });
+      current.setMessageDraft(matchId, draftText);
+      outputToolCall({
+        draftCreated: true,
+        match: getMatchSummary(match),
+        draftText,
+        guidance: "Draft stored in the current browser-memory session for recruiter review. Talent Rediscovery never sends outreach automatically.",
+      });
+      return;
+    }
+
+    if (toolCall.toolName === "compareMatches") {
+      const requestedMatchIds = uniqueValues(getInputStringArray(toolCall.input, "matchIds"));
+      const matches = requestedMatchIds
+        .map((matchId) => current.shortlist.find((candidateMatch) => getMatchId(candidateMatch) === matchId))
+        .filter((match): match is Match => !!match);
+      const validMatchIds = matches.map(getMatchId);
+      const unavailableMatchIds = requestedMatchIds.filter((matchId) => !validMatchIds.includes(matchId));
+
+      if (matches.length < 2) {
+        outputToolCall({
+          compared: false,
+          requestedMatchIds,
+          validMatchIds,
+          unavailableMatchIds,
+          availableMatches: getAvailableMatchSummaries(current.shortlist),
+          guidance: "Select at least two valid Match IDs from the current Shortlist to compare.",
+        });
+        return;
+      }
+
+      outputToolCall({
+        compared: true,
+        requestedMatchIds,
+        unavailableMatchIds,
+        comparison: buildCompactComparison(matches),
+      });
+    }
   };
 
   const { messages, sendMessage, status, addToolOutput } = useChat({
