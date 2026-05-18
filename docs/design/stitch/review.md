@@ -27,7 +27,7 @@ Stitch is a visual starting point only. `CONTEXT.md`, the ADRs, and the current 
 - Remove `Greenhouse API`, `LinkedIn Scrape`, and any source examples that imply ATS/API/scraping integrations. Use CSV-safe examples such as `CSV Upload`, `ATS Export CSV`, `Recruiter Notes CSV`, or `Legacy Spreadsheet`.
 - Remove `Export` as an active action in `/talent-pool`; exporting is not in MVP scope.
 - Remove real `sync`, `validated`, `last active`, and background revalidation language unless clearly disabled/future-only.
-- Replace `Running the search against your talent pool now` with language that preserves explicit execution, such as `Ready to run this Search Request` before the user confirms.
+- Replace `Ready to run this Search Request` with auto-execution language such as `Evaluating Candidate Records against this Search Request` after recruiter intent is submitted and Candidate Records are loaded.
 - Ensure the empty state for `/` is designed: Copilot can explain the product and draft a pending Search Request, but cannot create a real Shortlist without a loaded Talent Pool File.
 - Ensure the `Draft Message` UI never implies sending. Prefer `Create editable draft` and supporting copy: `Talent Rediscovery never sends outreach automatically.`
 - Remove `Regenerate Tone` unless it is implemented as requesting a new editable draft and remains review-only.
