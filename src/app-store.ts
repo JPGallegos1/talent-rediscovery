@@ -4,6 +4,32 @@ import type { CandidateRecord } from "./csv-candidate-records.js";
 import type { SearchCriteria } from "./search-criteria.js";
 import type { Match } from "./shortlist-matches.js";
 
+export type ComparisonReportEvidence = {
+  label: string;
+  value: string;
+  matched: string;
+};
+
+export type ComparisonReportMatch = {
+  matchId: string;
+  candidateRecordLabel: string;
+  currentRole: string;
+  strength: Match["strength"];
+  reasons: string[];
+  evidence: ComparisonReportEvidence[];
+  gaps: string[];
+  risks: string[];
+  suggestedNextAction: string;
+  differentiators: string[];
+};
+
+export type ComparisonReport = {
+  searchRequest: string;
+  comparedMatchIds: string[];
+  sharedEvidence: string[];
+  matches: ComparisonReportMatch[];
+};
+
 export type CopilotErrorKind = "client" | "server" | "offline";
 
 export type CopilotErrorState = {
@@ -24,6 +50,7 @@ type AppStoreState = {
   copilotInput: string;
   copilotError: CopilotErrorState | null;
   messageDraftsByMatchId: Record<string, string>;
+  comparisonReport: ComparisonReport | null;
 };
 
 type AppStoreActions = {
@@ -35,6 +62,7 @@ type AppStoreActions = {
   setCopilotInput: (input: string) => void;
   setCopilotError: (error: CopilotErrorState | null) => void;
   setMessageDraft: (matchId: string, draftText: string) => void;
+  setComparisonReport: (comparisonReport: ComparisonReport | null) => void;
 };
 
 const initialState: AppStoreState = {
@@ -49,6 +77,7 @@ const initialState: AppStoreState = {
   copilotInput: "",
   copilotError: null,
   messageDraftsByMatchId: {},
+  comparisonReport: null,
 };
 
 export const useAppStore = create<AppStoreState & AppStoreActions>((set) => ({
@@ -66,6 +95,7 @@ export const useAppStore = create<AppStoreState & AppStoreActions>((set) => ({
       copilotInput: "",
       copilotError: null,
       messageDraftsByMatchId: {},
+      comparisonReport: null,
     }),
   clearTalentPool: () =>
     set({
@@ -81,6 +111,7 @@ export const useAppStore = create<AppStoreState & AppStoreActions>((set) => ({
       shortlist,
       selectedMatchId: null,
       messageDraftsByMatchId: {},
+      comparisonReport: null,
     }),
   selectMatch: (selectedMatchId) => set({ selectedMatchId }),
   setCopilotMessages: (copilotMessages) => set({ copilotMessages }),
@@ -93,4 +124,5 @@ export const useAppStore = create<AppStoreState & AppStoreActions>((set) => ({
         [matchId]: draftText,
       },
     })),
+  setComparisonReport: (comparisonReport) => set({ comparisonReport }),
 }));
