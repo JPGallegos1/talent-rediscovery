@@ -2,9 +2,13 @@
 
 Status: accepted
 
+Persistence and app-boundary notes in this ADR reflect the earlier in-memory frontend phase. The TanStack frontend shell decision remains accepted, but current persisted memory, Supabase, monorepo, `apps/api`, and `apps/memory` decisions are superseded by `docs/adr/0002-persisted-recruiting-memory-source-of-truth.md` and `docs/adr/0003-monorepo-app-api-memory-boundaries.md`.
+
+The current frontend direction may use TanStack Start for `apps/admin` instead of assembling TanStack Router, Vite, server routing, and middleware as separate pieces. This decision applies only to the frontend/admin boundary: TanStack Start server routes or server functions may act as frontend-owned middleware or BFF glue, but they must not bypass `apps/api` for Supabase access, durable recruiting memory writes, confirmation gates, or other secure product actions.
+
 The framework-free prototype proved the core Talent Rediscovery flow, but the next demo iteration needs a richer product UI plus chat and Voice Copilot interactions. We will replace the static frontend shell with a Vite + TanStack Router app written in TypeScript, use Tailwind as the base styling library, and migrate the reusable domain modules to TypeScript without redesigning their behavior. The preserved domain logic covers CSV Talent Pool File parsing, Candidate Record normalization, Search Request interpretation, evidence-grounded Shortlists, and editable message drafts. Uploaded Talent Pools still remain in memory, Shortlists remain ephemeral, Search Criteria stay visible but not manually editable, and Matches must remain grounded in Candidate Record evidence.
 
-TanStack Start or another TanStack full-stack setup is a likely future evolution if server functions, SSR, persistence, or integrated deployment become useful. It is not the current decision because the immediate need is a modern frontend shell plus a small explicit API boundary for AI session creation.
+TanStack Start is acceptable as the frontend framework for `apps/admin` because it keeps TanStack Router, Vite, SSR, server routes, and server functions in one frontend-oriented stack. It does not change the accepted `apps/api` boundary for secure backend work.
 
 The AI work introduced in this frontend phase is an Intelligence Layer for chat and Voice Copilot, not a replacement for matching. It may create Search Requests, navigate Shortlists, explain or compare Matches from existing evidence, and request editable message drafts, but it must not decide the Shortlist, recalculate Match strength, modify Candidate Records, manually edit Search Criteria, send outreach, or introduce unsupported claims.
 

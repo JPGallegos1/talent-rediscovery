@@ -1,5 +1,7 @@
 # Talent Rediscovery — Handoff
 
+Status: historical handoff. This file predates Recollect/Serenity persisted memory decisions. Use `CONTEXT.md`, `docs/adr/0002-persisted-recruiting-memory-source-of-truth.md`, and `docs/adr/0003-monorepo-app-api-memory-boundaries.md` as the current source of truth.
+
 ## 1. Working name
 
 **Talent Rediscovery**

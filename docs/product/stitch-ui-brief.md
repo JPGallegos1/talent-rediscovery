@@ -1,5 +1,7 @@
 # Stitch UI Brief
 
+Status: historical design-generation brief. Use only as visual/UI inspiration. Product scope and data-boundary statements that mention in-memory-only Talent Pools or no persistence are superseded by `CONTEXT.md`, `docs/adr/0002-persisted-recruiting-memory-source-of-truth.md`, and `docs/adr/0003-monorepo-app-api-memory-boundaries.md`.
+
 Temporary brief for generating the next Talent Rediscovery UI direction in Stitch. This file can be deleted after the design direction has been used.
 
 ## Files To Provide
