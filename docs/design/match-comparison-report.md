@@ -1,5 +1,7 @@
 # Advanced Match Comparison Report
 
+Status: historical interaction design. The rule that Shortlists and comparison reports are derived/ephemeral still applies, but any in-memory implementation detail should be rechecked against `CONTEXT.md`, `docs/adr/0002-persisted-recruiting-memory-source-of-truth.md`, and `docs/adr/0003-monorepo-app-api-memory-boundaries.md` before implementation.
+
 ## Purpose
 
 The advanced comparison report gives a recruiter a fuller, side-by-side view after Copilot has already completed a compact comparison for explicit Match IDs.

@@ -1,5 +1,7 @@
 # Stitch Visual Fidelity Guardrails
 
+Status: visual guidance with superseded product boundaries. Preserve the Stitch visual direction where useful, but use `CONTEXT.md`, `docs/adr/0002-persisted-recruiting-memory-source-of-truth.md`, and `docs/adr/0003-monorepo-app-api-memory-boundaries.md` for current Recollect domain language, persisted memory, Supabase, and app-boundary decisions. In-memory-only and no-persistence constraints below describe the earlier frontend prototype.
+
 Lightweight guardrails so future agents and contributors preserve the Stitch-based UI direction without reintroducing forbidden MVP behavior or contradicting the domain model.
 
 ---

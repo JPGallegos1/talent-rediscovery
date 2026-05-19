@@ -2,6 +2,8 @@
 
 Status: accepted
 
+Persistence and app-boundary notes in this ADR reflect the earlier in-memory frontend phase. The TanStack frontend shell decision remains accepted, but current persisted memory, Supabase, monorepo, `apps/api`, and `apps/memory` decisions are superseded by `docs/adr/0002-persisted-recruiting-memory-source-of-truth.md` and `docs/adr/0003-monorepo-app-api-memory-boundaries.md`.
+
 The framework-free prototype proved the core Talent Rediscovery flow, but the next demo iteration needs a richer product UI plus chat and Voice Copilot interactions. We will replace the static frontend shell with a Vite + TanStack Router app written in TypeScript, use Tailwind as the base styling library, and migrate the reusable domain modules to TypeScript without redesigning their behavior. The preserved domain logic covers CSV Talent Pool File parsing, Candidate Record normalization, Search Request interpretation, evidence-grounded Shortlists, and editable message drafts. Uploaded Talent Pools still remain in memory, Shortlists remain ephemeral, Search Criteria stay visible but not manually editable, and Matches must remain grounded in Candidate Record evidence.
 
 TanStack Start or another TanStack full-stack setup is a likely future evolution if server functions, SSR, persistence, or integrated deployment become useful. It is not the current decision because the immediate need is a modern frontend shell plus a small explicit API boundary for AI session creation.

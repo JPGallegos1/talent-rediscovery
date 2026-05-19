@@ -1,5 +1,7 @@
 # Stitch Design Review
 
+Status: visual review with superseded product boundaries. Keep useful visual corrections, but defer current domain and architecture decisions to `CONTEXT.md`, `docs/adr/0002-persisted-recruiting-memory-source-of-truth.md`, and `docs/adr/0003-monorepo-app-api-memory-boundaries.md`. Mentions of in-memory-only data or non-persistence belong to the earlier prototype.
+
 Review of Stitch exports in `docs/design/stitch/` against `CONTEXT.md` and `docs/adr/0001-tanstack-frontend-shell.md`.
 
 Stitch is a visual starting point only. `CONTEXT.md`, the ADRs, and the current domain implementation remain the source of truth for product language, behavior, scope, and data boundaries. When Stitch-generated UI conflicts with the project domain model, keep the visual pattern and replace the incorrect product behavior or terminology.

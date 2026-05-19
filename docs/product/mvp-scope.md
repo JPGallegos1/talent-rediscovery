@@ -1,160 +1,196 @@
-# MVP Scope
+# MVP Scope: Recollect Persisted Memory Slice
 
-## MVP Goal
+Status: current. This replaces the earlier weekend/in-memory prototype scope. The current MVP is the smallest productized slice that proves Recollect can preserve and reuse recruiting memory with human control.
 
-Validate whether recruiters perceive value in querying an existing Talent Pool conversationally and receiving an explained Shortlist.
+## The Single Thing
 
-The MVP should prove one core moment:
+Recollect helps a recruiter reuse an existing Talent Pool by preserving Candidate Records and recruiter-confirmed Candidate Notes, then using that memory to produce evidence-grounded Matches for a Search Request.
 
-> The recruiter uploads or shares a Talent Pool File, submits a Search Request, and finds useful candidates they would otherwise have missed.
+If the MVP does only one thing, it should prove this moment:
 
-## MVP Verdict
+```text
+Recruiter imports existing Candidate Records
+-> Recollect preserves them as recruiting memory
+-> Recruiter confirms one useful Candidate Note
+-> Recruiter submits a Search Request
+-> Recollect returns Matches with evidence and provenance
+```
 
-Build the smallest demoable workflow after initial conversations confirm the pain.
+## Minimalist Constraint
 
-Before that, use a concierge workflow with real or anonymized data.
+Build as little as possible. This is not the full Recollect platform. It is a demoable memory loop that can be tested with recruiters and improved manually before automating more workflows.
 
-## Stage 1: Manual Concierge
+The MVP should stay close to forms and lists:
 
-### What It Does
+- Upload CSV.
+- Show Candidate Records.
+- Show Matches.
+- Confirm a Candidate Note.
+- Show evidence and provenance.
 
-For one recruiter and one role:
+## Stage 1: Manual
 
-1. Receive a Talent Pool file or representative sample.
-2. Receive a Search Request in natural language.
-3. Produce an ephemeral Shortlist of Matches manually or semi-manually.
-4. Explain reasons, evidence, gaps, risks, and Suggested Next Action.
-5. Ask whether the result was useful enough to repeat or pay for.
+Before or alongside the software slice, keep a concierge version available:
 
-### Tools
+1. Ask a recruiter for an anonymized Talent Pool File or representative CSV.
+2. Ask for one real Search Request.
+3. Manually inspect and normalize enough Candidate Records to produce a useful Shortlist.
+4. Add one or two recruiter-confirmed notes manually.
+5. Return a Shortlist with reasons, evidence, gaps, risks, Suggested Next Action, and provenance.
+6. Ask whether the recruiter would use this again or pay for it.
 
-- Spreadsheet viewer.
-- Manual analysis.
-- AI assistance where useful for interpretation, Voice Copilot, or drafting, without allowing opaque Matches.
-- Markdown or PDF report.
-
-### Output
+Manual output:
 
 - 5 to 10 Matches.
-- Qualitative Match strength: Strong, Possible, or Weak.
-- Evidence from Candidate Records.
-- Missing or uncertain information.
-- Suggested validation question.
-- Optional editable message draft when the Suggested Next Action is to contact or recontact.
+- Strong, Possible, or Weak Match strength.
+- Evidence separated by Candidate Record and Candidate Note.
+- Clear gaps and risks.
+- One Suggested Next Action per Match.
+- One example of preserved Candidate memory.
 
-## Stage 2: Weekend Demo Prototype
+## Stage 2: Processized
 
-### Single Thing It Does
+Document the repeatable process before automating more:
 
-Upload a CSV Talent Pool file, ask for a profile in text, and return a ranked Shortlist of Matches with explanations.
+1. Receive CSV.
+2. Map obvious canonical fields.
+3. Preserve unmapped source fields.
+4. Create one minimal Candidate per imported row unless duplicate review is explicitly needed.
+5. Store Candidate Records with provenance.
+6. Capture or propose Candidate Notes only when recruiting-relevant.
+7. Require human confirmation before Candidate Notes become durable.
+8. Interpret the Search Request into read-only Search Criteria.
+9. Match Candidate Records against Search Criteria.
+10. Enrich Match evidence with confirmed Candidate Notes only.
+11. Show provenance and uncertainty.
+12. Ask the recruiter what was useful, missing, or wrong.
 
-### Required User Flow
+This process is the product blueprint. Only automate steps that have proven useful in recruiter conversations.
 
-1. Recruiter opens the prototype.
-2. Recruiter uploads a CSV file.
-3. Prototype parses and previews Candidate Records.
-4. Recruiter types a Search Request.
-5. Prototype returns a ranked Shortlist of Matches.
-6. Each Match includes reasons, evidence, gaps, and a Suggested Next Action.
-7. Recruiter can generate a simple editable message draft when the Suggested Next Action is to contact or recontact.
+## Stage 3: Productized Demo Slice
 
-### In Scope
+The productized MVP should include only the following:
 
-- CSV upload.
-- CSV-first upload scope.
-- Candidate table preview.
-- Basic normalization of common fields.
-- Tolerance for different recruiter CSV structures.
-- Text Search Request input.
-- Visible interpreted Search Criteria without manual filter editing.
-- Small in-memory Candidate Record dataset.
-- In-memory Talent Pool after upload.
-- Match result cards.
-- Match output with reasons, evidence, gaps, risks, and Suggested Next Action.
-- Simple editable message draft generation when contact or recontact is the Suggested Next Action.
-- Synthetic demo dataset with imperfect records.
-- Loom demo script based on the core story.
+- CSV Talent Pool File upload.
+- Candidate Record parsing and normalization.
+- Supabase persistence through `apps/api` for Candidate, Candidate Record, Candidate Note, and Search Request.
+- Minimal Candidate identity shells.
+- Candidate Records as imported/captured evidence with canonical fields plus preserved source data.
+- Shared Provenance for Candidate Records and Candidate Notes.
+- Search Request creation with original text and read-only Search Criteria snapshot.
+- Derived Shortlists and Matches.
+- Matching from Candidate Record evidence, enriched by confirmed Candidate Notes.
+- Candidate memory panel on Match detail.
+- Evidence panel separating Candidate Record evidence from Candidate Note evidence.
+- Confirm-note modal or sheet.
+- Provenance chips for source, confirmation, staleness, and uncertainty.
+- Serenity memory actions for retrieving memory, proposing notes, confirming notes, showing provenance, and identifying gaps.
+- Act/confirm/refuse policy for Serenity actions.
 
-### Optional Only If It Does Not Delay Validation
+## Weekend Version
 
-- Voice Copilot through GPT Realtime or equivalent browser voice interaction.
-- Follow-up questions about the current Shortlist and Matches.
+If this must be reduced to a weekend slice, cut everything except:
+
+1. Persist CSV import into Candidate and Candidate Record.
+2. Persist one manual confirmed Candidate Note.
+3. Persist one Search Request with criteria snapshot.
+4. Return Matches using Candidate Record evidence and the confirmed Candidate Note.
+5. Show provenance in the Match detail.
+
+Do not build audio, mem0 sync, advanced history, batch review, merge UI, saved Shortlists, deletion workflows, or TanStack AI migration in the weekend version.
+
+## In Scope
+
+- Recollect naming and Serenity memory agent framing.
+- Talent Rediscovery as the core capability.
+- CSV-first Talent Pool File upload.
+- Candidate as minimal identity shell.
+- Candidate Record as evidence-bearing imported/captured memory.
+- Candidate Note as durable recruiter-confirmed memory.
+- Search Request persistence with criteria snapshot.
+- Shortlists and Matches as derived, temporary outputs.
+- Confirmed Candidate Notes contributing Match evidence.
+- Provenance displayed in the UI.
+- Strict relevance guardrails for stored memory.
+- `apps/api` as the Supabase and AI SDK orchestration boundary.
+- `apps/admin` as the TanStack admin application.
+- `apps/memory` as a FastAPI Memory Intelligence Layer that returns proposals and derived outputs.
 
 ## Out Of Scope
 
-- Full RAG architecture.
-- Embeddings or vector database.
-- Long-term memory.
-- Excel upload unless it becomes a validation blocker.
-- ATS integrations.
-- Direct Notion import or migration.
-- LinkedIn scraping.
-- Automated outreach.
+- Full SaaS onboarding.
+- Multi-tenant auth and role-based permissions.
+- Billing.
+- Saved Shortlists.
+- Persisted Match snapshots.
+- Auto-merging identities.
+- Deleting memory.
+- External outreach.
+- Sending messages.
 - Automated follow-ups.
 - Calendar scheduling.
-- Multi-tenant SaaS architecture.
-- Billing.
-- Role-based permissions.
-- Production-grade authentication.
-- Persisted uploaded Talent Pools.
-- Complex Candidate Record lifecycle state machine.
-- Final frontend framework decision.
-- Large-file processing.
-- Enterprise privacy/compliance implementation.
+- ATS integrations.
+- LinkedIn scraping.
+- Notion import.
+- Excel import unless validation demands it.
+- Full RAG as source of truth.
+- mem0 as canonical storage.
+- Direct Supabase access from `apps/admin` or `apps/memory`.
+- Full audit workflows.
+- Advanced Candidate history.
+- Batch note review.
+- Merge UI.
+- TanStack AI migration.
 
-## Weekend Build Constraint
+## Initial Price Point
 
-If the prototype cannot be built in a weekend, cut scope in this order:
+Start with a paid concierge offer before treating the software as the business:
 
-1. Remove Voice Copilot.
-2. Do not add Excel support unless it becomes a validation blocker.
-3. Remove follow-up interactions and keep one Search Request.
-4. Remove persistence and keep the Shortlist in memory.
-5. Remove styling polish and keep a clear functional interface.
-6. Replace AI-assisted matching with deterministic evidence-grounded demo matching for the Loom.
+- USD 100 to 300 for a small Talent Pool rediscovery report for one role.
+- USD 300 to 750 for a Talent Pool memory audit plus one reusable Shortlist workflow.
 
-## Candidate Data Shape
+The price test should happen with a manual or semi-manual delivery if needed. Payment matters more than feature completeness.
 
-The demo dataset should include:
+## Feedback Collection
 
-- Candidate name.
-- Current role.
-- Skills.
-- Years of experience.
-- Location.
-- English level.
-- Industries.
-- Availability.
-- Salary expectation if available.
-- Source.
-- Last contact date if available.
-- Notes.
+After each demo or concierge run, ask:
 
-The dataset should intentionally include:
+- Which Match was actually useful?
+- Which evidence made you trust or reject the Match?
+- What memory was missing?
+- Would you want Recollect to remember this Candidate Note next time?
+- Did provenance make the result more trustworthy?
+- What would you pay to run this on another role?
+- Would you share another Talent Pool File for a second run?
 
-- Missing English levels.
-- Outdated last contact dates.
-- Vague seniority.
-- Inconsistent skill names.
-- Duplicate Candidate Records.
-- Unclear availability.
-- Mixed English and Spanish notes.
+Strong-pull signals:
+
+- Recruiter asks to use their own data.
+- Recruiter gives a second Search Request.
+- Recruiter corrects or adds Candidate Notes.
+- Recruiter asks how to keep memory for future searches.
+- Recruiter discusses payment or pilot usage.
 
 ## Success Criteria
 
-The MVP is successful if:
+The MVP succeeds if:
 
-- A recruiter understands the value in under 2 minutes.
-- A recruiter can map it to a real workflow they currently perform.
-- The Shortlist includes at least one Match whose Candidate the recruiter considers worth contacting.
-- The explanation format helps the recruiter trust or reject the recommendation.
-- The recruiter asks to try it with their own data or another role.
+- A recruiter understands the value in under two minutes.
+- A CSV import produces visible Candidate Records with provenance.
+- A Search Request produces evidence-grounded Matches.
+- At least one confirmed Candidate Note is preserved and reused.
+- The recruiter can see why a Match was produced.
+- The recruiter can tell which evidence came from a Candidate Record versus a Candidate Note.
+- The recruiter trusts the human confirmation boundary.
+- The recruiter asks to try another role or Talent Pool.
 
-## Initial Price Test
+## Cut Scope Order
 
-Start with a paid manual offer, not a full subscription:
+If implementation pressure rises, cut in this order:
 
-- USD 25 to 100 for a one-role rediscovery report.
-- USD 100 to 300 for a small Talent Pool audit and Shortlist package.
-
-If recruiters refuse to pay anything for a manual result, do not assume software automation will fix the business model.
+1. Remove audio note-taking.
+2. Remove mem0 sync.
+3. Remove `apps/memory` runtime and mock its proposals behind `apps/api`.
+4. Remove advanced Candidate Memory Retrieval UI beyond the Match detail panel.
+5. Remove editable message draft generation.
+6. Keep only CSV import, Search Request, one confirmed Candidate Note, Matches, evidence, and provenance.
