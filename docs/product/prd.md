@@ -79,7 +79,8 @@ The recruiter can import CSV Candidate Records, run a Search Request, review Mat
 - The current Intelligence Layer interaction actions remain separate from Serenity memory actions.
 - The Intelligence Layer may create Search Requests, navigate to Matches, explain Matches, compare existing Matches, request editable message drafts, and show interpreted Search Criteria.
 - Serenity memory actions may retrieve Candidate Memory, propose Candidate Notes, confirm Candidate Notes, show history/provenance, and identify memory gaps.
-- `apps/admin` is the TanStack admin application and must not instantiate or directly import Supabase clients.
+- `apps/admin` is the TanStack admin application, may use TanStack Start for frontend routing, SSR, server routes, and frontend-owned middleware, and must not instantiate or directly import Supabase clients.
+- TanStack Start server routes or server functions in `apps/admin` may act only as frontend/BFF glue and must delegate secure or durable operations to `apps/api`.
 - `apps/api` is the only canonical Supabase access boundary and owns app-facing AI SDK orchestration, auth/session context, tool validation, streaming, confirmation gates, and persistence decisions.
 - `apps/memory` is a FastAPI service for memory retrieval, extraction, enrichment, and reasoning from scoped context.
 - `apps/memory` must not directly read from or write to Supabase.

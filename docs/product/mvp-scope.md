@@ -113,7 +113,8 @@ Do not build audio, mem0 sync, advanced history, batch review, merge UI, saved S
 - Provenance displayed in the UI.
 - Strict relevance guardrails for stored memory.
 - `apps/api` as the Supabase and AI SDK orchestration boundary.
-- `apps/admin` as the TanStack admin application.
+- `apps/admin` as the TanStack admin application, optionally implemented with TanStack Start for frontend routing, SSR, server routes, and frontend-owned middleware.
+- TanStack Start server routes or server functions as frontend/BFF glue only; Supabase access, durable writes, confirmation gates, and secure actions stay in `apps/api`.
 - `apps/memory` as a FastAPI Memory Intelligence Layer that returns proposals and derived outputs.
 
 ## Out Of Scope

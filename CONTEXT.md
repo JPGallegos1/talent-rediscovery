@@ -106,8 +106,9 @@ Serenity memory actions are separate from the current **Intelligence Layer** int
 ## Architecture Boundaries
 
 - The monorepo is planned around `apps/admin`, `apps/api`, and `apps/memory`.
-- `apps/admin` is the TanStack admin application and must not instantiate or directly import Supabase clients.
+- `apps/admin` is the TanStack admin application and may use TanStack Start for frontend routing, SSR, server routes, or frontend-owned middleware, but it must not instantiate or directly import Supabase clients.
 - `apps/api` is the only canonical Supabase access boundary for persisted recruiting memory and protects Supabase access from other apps.
+- TanStack Start server routes or server functions in `apps/admin` are allowed only as frontend/BFF middleware; any secure or durable operation must delegate to `apps/api`.
 - `apps/memory` is the Memory Intelligence Layer for Serenity-specific retrieval, extraction, enrichment, and reasoning work; it must not directly read from or write to Supabase.
 - `apps/memory` returns proposals, extracted fields, summaries, retrieval context, or note candidates to `apps/api` instead of persisting durable facts.
 - Durable writes to persisted recruiting memory must pass through `apps/api` and preserve confirmation, provenance, uncertainty, and relevance limits.

@@ -10,4 +10,6 @@ Current source-of-truth decisions:
 - `docs/adr/0002-persisted-recruiting-memory-source-of-truth.md`
 - `docs/adr/0003-monorepo-app-api-memory-boundaries.md`
 
+`candidate_memory_matching.png` is the current architecture diagram for the Candidate memory and matching boundaries.
+
 `ard-001-prototype-architecture.md` is historical and describes the first in-memory prototype, not the next Recollect persisted-memory demo slice.
