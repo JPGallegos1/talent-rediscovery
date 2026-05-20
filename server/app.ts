@@ -5,7 +5,11 @@ import { cors } from "hono/cors";
 import { parseCsvTalentPool } from "../src/csv-candidate-records.js";
 import { interpretSearchCriteria } from "../src/search-criteria.js";
 import { buildSystemPrompt, intelligenceActionTools } from "./intelligence-handler.js";
-import { createMemoryRecruitingMemoryRepository, type RecruitingMemoryRepository } from "./recruiting-memory.js";
+import {
+  createMemoryRecruitingMemoryRepository,
+  type CandidateNoteSourceType,
+  type RecruitingMemoryRepository,
+} from "./recruiting-memory.js";
 
 type ApiEnvironment = Record<string, string | undefined>;
 
@@ -73,6 +77,45 @@ function isSearchRequestPayload(value: unknown): value is { searchRequest: strin
     value.searchRequest.trim().length > 0 &&
     (value.creatorId === undefined || typeof value.creatorId === "string" || value.creatorId === null)
   );
+}
+
+const candidateNoteSourceTypes = new Set(["manual", "imported", "transcribed", "inferred"]);
+
+function isCandidateNoteSourceType(value: unknown): value is CandidateNoteSourceType {
+  return typeof value === "string" && candidateNoteSourceTypes.has(value);
+}
+
+function isCandidateNoteProposalPayload(
+  value: unknown,
+): value is { candidateId: string; content: string; sourceType: CandidateNoteSourceType; creatorId?: string | null } {
+  return (
+    isRecord(value) &&
+    typeof value.candidateId === "string" &&
+    value.candidateId.trim().length > 0 &&
+    typeof value.content === "string" &&
+    value.content.trim().length > 0 &&
+    isCandidateNoteSourceType(value.sourceType) &&
+    (value.creatorId === undefined || typeof value.creatorId === "string" || value.creatorId === null)
+  );
+}
+
+function isCandidateNoteConfirmationPayload(
+  value: unknown,
+): value is { candidateId: string; content: string; sourceType: CandidateNoteSourceType; creatorId?: string | null; confirmerId: string } {
+  const confirmerId = isRecord(value) ? value.confirmerId : undefined;
+
+  return (
+    isCandidateNoteProposalPayload(value) &&
+    typeof confirmerId === "string" &&
+    confirmerId.trim().length > 0
+  );
+}
+
+function isRecruitingRelevantCandidateNote(content: string) {
+  const normalized = content.toLowerCase();
+  const sensitiveSignals = ["health", "family", "religion", "politics", "appearance", "financial", "finances"];
+
+  return !sensitiveSignals.some((signal) => normalized.includes(signal));
 }
 
 export function getChatModel(env: ApiEnvironment = process.env) {
@@ -151,6 +194,64 @@ export function createApiApp({ env = process.env, recruitingMemory = createMemor
     const searchRequests = await recruitingMemory.listSearchRequests();
 
     return c.json({ searchRequests });
+  });
+
+  app.post("/api/candidate-notes/propose", async (c) => {
+    const payload = await c.req.json().catch(() => null);
+
+    if (!isCandidateNoteProposalPayload(payload)) {
+      return c.json(copilotError("validation_error", "Candidate Note proposal requires candidateId, content, and sourceType."), 400);
+    }
+
+    if (!(await recruitingMemory.candidateExists(payload.candidateId))) {
+      return c.json(copilotError("validation_error", "Candidate does not exist."), 404);
+    }
+
+    if (!isRecruitingRelevantCandidateNote(payload.content)) {
+      return c.json(copilotError("validation_error", "Candidate Notes must be recruiting-relevant and avoid sensitive personal data."), 400);
+    }
+
+    return c.json({
+      proposedCandidateNote: {
+        candidateId: payload.candidateId,
+        content: payload.content,
+        sourceType: payload.sourceType,
+        creatorId: payload.creatorId ?? null,
+        durable: false,
+      },
+    });
+  });
+
+  app.post("/api/candidate-notes/confirm", async (c) => {
+    const payload = await c.req.json().catch(() => null);
+
+    if (!isCandidateNoteConfirmationPayload(payload)) {
+      return c.json(copilotError("validation_error", "Candidate Note confirmation requires candidateId, content, sourceType, and confirmerId."), 400);
+    }
+
+    if (!(await recruitingMemory.candidateExists(payload.candidateId))) {
+      return c.json(copilotError("validation_error", "Candidate does not exist."), 404);
+    }
+
+    if (!isRecruitingRelevantCandidateNote(payload.content)) {
+      return c.json(copilotError("validation_error", "Candidate Notes must be recruiting-relevant and avoid sensitive personal data."), 400);
+    }
+
+    const candidateNote = await recruitingMemory.confirmCandidateNote(payload);
+
+    return c.json({ candidateNote }, 201);
+  });
+
+  app.get("/api/candidates/:candidateId/notes", async (c) => {
+    const candidateId = c.req.param("candidateId");
+
+    if (!(await recruitingMemory.candidateExists(candidateId))) {
+      return c.json(copilotError("validation_error", "Candidate does not exist."), 404);
+    }
+
+    const candidateNotes = await recruitingMemory.listCandidateNotes(candidateId);
+
+    return c.json({ candidateNotes });
   });
 
   app.post("/api/chat", async (c) => {

@@ -57,20 +57,50 @@ export type SearchRequestInput = {
   creatorId?: string | null;
 };
 
+export type CandidateNoteSourceType = "manual" | "imported" | "transcribed" | "inferred";
+
+export type CandidateNote = {
+  id: string;
+  candidateId: string;
+  content: string;
+  provenance: {
+    sourceType: CandidateNoteSourceType;
+    creatorId: string | null;
+    createdAt: string;
+    confirmerId: string;
+    confirmedAt: string;
+    uncertainty: string | null;
+    staleness: string | null;
+  };
+};
+
+export type CandidateNoteConfirmationInput = {
+  candidateId: string;
+  content: string;
+  sourceType: CandidateNoteSourceType;
+  creatorId?: string | null;
+  confirmerId: string;
+};
+
 export type RecruitingMemoryRepository = {
   importCandidateRecords(input: CandidateRecordImportInput): Promise<CandidateRecordImportResult>;
   listCandidateRecords(): Promise<PersistedCandidateRecord[]>;
   createSearchRequest(input: SearchRequestInput): Promise<SearchRequestMemory>;
   listSearchRequests(): Promise<SearchRequestMemory[]>;
+  candidateExists(candidateId: string): Promise<boolean>;
+  confirmCandidateNote(input: CandidateNoteConfirmationInput): Promise<CandidateNote>;
+  listCandidateNotes(candidateId: string): Promise<CandidateNote[]>;
 };
 
 export function createMemoryRecruitingMemoryRepository(): RecruitingMemoryRepository {
   const candidates: Candidate[] = [];
   const candidateRecords: PersistedCandidateRecord[] = [];
   const searchRequests: SearchRequestMemory[] = [];
+  const candidateNotes: CandidateNote[] = [];
   let nextCandidateId = 1;
   let nextCandidateRecordId = 1;
   let nextSearchRequestId = 1;
+  let nextCandidateNoteId = 1;
 
   return {
     async importCandidateRecords(input) {
@@ -142,6 +172,33 @@ export function createMemoryRecruitingMemoryRepository(): RecruitingMemoryReposi
     },
     async listSearchRequests() {
       return searchRequests;
+    },
+    async candidateExists(candidateId) {
+      return candidates.some((candidate) => candidate.id === candidateId);
+    },
+    async confirmCandidateNote(input) {
+      const now = new Date().toISOString();
+      const candidateNote: CandidateNote = {
+        id: `candidate_note_${nextCandidateNoteId}`,
+        candidateId: input.candidateId,
+        content: input.content,
+        provenance: {
+          sourceType: input.sourceType,
+          creatorId: input.creatorId ?? null,
+          createdAt: now,
+          confirmerId: input.confirmerId,
+          confirmedAt: now,
+          uncertainty: null,
+          staleness: null,
+        },
+      };
+      nextCandidateNoteId += 1;
+      candidateNotes.push(candidateNote);
+
+      return candidateNote;
+    },
+    async listCandidateNotes(candidateId) {
+      return candidateNotes.filter((candidateNote) => candidateNote.candidateId === candidateId);
     },
   };
 }
