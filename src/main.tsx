@@ -4,8 +4,9 @@ import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvide
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
+import { importCsvTalentPool } from "./api-client.js";
 import { useAppStore, type ComparisonReport, type CopilotErrorState } from "./app-store.js";
-import { parseCsvTalentPool, type CandidateRecord } from "./csv-candidate-records.js";
+import type { CandidateRecord } from "./csv-candidate-records.js";
 import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "./message-draft.js";
 import { interpretSearchCriteria, type SearchCriteria } from "./search-criteria.js";
 import { buildShortlist, type Match } from "./shortlist-matches.js";
@@ -696,9 +697,9 @@ function TalentPoolRoute() {
 
     try {
       const csvText = await file.text();
-      const parsed = parseCsvTalentPool(csvText);
-      loadTalentPool({ talentPoolFileName: file.name, candidateRecords: parsed.candidateRecords });
-      setUploadStatus(`Parsed ${parsed.candidateRecords.length} Candidate Records from ${file.name}.`);
+      const result = await importCsvTalentPool({ fileName: file.name, csvText });
+      loadTalentPool({ talentPoolFileName: file.name, candidateRecords: result.candidateRecords });
+      setUploadStatus(`Imported ${result.imported.candidateRecordCount} Candidate Records from ${file.name}.`);
       setUploadError(false);
     } catch (error) {
       clearTalentPool();
