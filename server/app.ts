@@ -11,6 +11,7 @@ import {
   type CandidateNoteSourceType,
   type RecruitingMemoryRepository,
 } from "./recruiting-memory.js";
+import { evaluateSerenityMemoryAction } from "./serenity-memory-policy.js";
 
 type ApiEnvironment = Record<string, string | undefined>;
 
@@ -112,13 +113,6 @@ function isCandidateNoteConfirmationPayload(
   );
 }
 
-function isRecruitingRelevantCandidateNote(content: string) {
-  const normalized = content.toLowerCase();
-  const sensitiveSignals = ["health", "family", "religion", "politics", "appearance", "financial", "finances"];
-
-  return !sensitiveSignals.some((signal) => normalized.includes(signal));
-}
-
 export function getChatModel(env: ApiEnvironment = process.env) {
   return env.OPENAI_CHAT_MODEL || "gpt-4o";
 }
@@ -217,7 +211,13 @@ export function createApiApp({ env = process.env, recruitingMemory = createMemor
       return c.json(copilotError("validation_error", "Candidate does not exist."), 404);
     }
 
-    if (!isRecruitingRelevantCandidateNote(payload.content)) {
+    const policyDecision = evaluateSerenityMemoryAction({
+      action: "proposeCandidateNote",
+      content: payload.content,
+      sourceType: payload.sourceType,
+    });
+
+    if (policyDecision.decision === "refuse") {
       return c.json(copilotError("validation_error", "Candidate Notes must be recruiting-relevant and avoid sensitive personal data."), 400);
     }
 
@@ -243,7 +243,14 @@ export function createApiApp({ env = process.env, recruitingMemory = createMemor
       return c.json(copilotError("validation_error", "Candidate does not exist."), 404);
     }
 
-    if (!isRecruitingRelevantCandidateNote(payload.content)) {
+    const policyDecision = evaluateSerenityMemoryAction({
+      action: "confirmCandidateNote",
+      content: payload.content,
+      sourceType: payload.sourceType,
+      humanConfirmed: true,
+    });
+
+    if (policyDecision.decision === "refuse") {
       return c.json(copilotError("validation_error", "Candidate Notes must be recruiting-relevant and avoid sensitive personal data."), 400);
     }
 
