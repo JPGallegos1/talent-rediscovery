@@ -11,20 +11,21 @@ const skillAliases = {
 
 export function buildShortlist(candidateRecords, searchCriteria, options = {}) {
   const limit = options.limit ?? 6;
+  const candidateNotes = options.candidateNotes ?? [];
 
   if (!Array.isArray(candidateRecords) || candidateRecords.length === 0 || !searchCriteria) {
     return [];
   }
 
   return candidateRecords
-    .map((candidateRecord) => evaluateCandidateRecord(candidateRecord, searchCriteria))
+    .map((candidateRecord) => evaluateCandidateRecord(candidateRecord, searchCriteria, candidateNotes))
     .filter(({ match }) => match.evidence.length > 0)
     .sort((left, right) => right.rank - left.rank || left.match.candidateRecord.rowNumber - right.match.candidateRecord.rowNumber)
     .slice(0, limit)
     .map(({ match }) => match);
 }
 
-function evaluateCandidateRecord(candidateRecord, searchCriteria) {
+function evaluateCandidateRecord(candidateRecord, searchCriteria, candidateNotes) {
   const { canonicalFields } = candidateRecord;
   const evidence = [];
   const reasons = [];
@@ -104,6 +105,8 @@ function evaluateCandidateRecord(candidateRecord, searchCriteria) {
     }
   }
 
+  rank += addCandidateNoteEvidence(candidateRecord, searchCriteria, candidateNotes, evidence, reasons);
+
   addRecordGaps(candidateRecord, gaps);
   addRecordRisks(canonicalFields, risks);
 
@@ -131,6 +134,47 @@ function evaluateCandidateRecord(candidateRecord, searchCriteria) {
       suggestedNextAction: suggestNextAction(rank, gaps, risks),
     },
   };
+}
+
+function addCandidateNoteEvidence(candidateRecord, searchCriteria, candidateNotes, evidence, reasons) {
+  const confirmedNotes = candidateNotes.filter((note) => {
+    return note.candidateId === candidateRecord.candidateId && note.confirmed !== false && note.durable !== false;
+  });
+  let rank = 0;
+
+  for (const note of confirmedNotes) {
+    for (const skill of searchCriteria.skills ?? []) {
+      if (includesNormalized(note.content, skill)) {
+        rank += 2;
+        addEvidence(evidence, "candidateNote", "Candidate Note", note.content, `Matched requested skill: ${skill}`, "Candidate Note");
+        reasons.push(`Candidate Note confirms ${skill} context.`);
+      }
+    }
+
+    for (const industry of searchCriteria.industry ?? []) {
+      if (includesNormalized(note.content, industry)) {
+        rank += 2;
+        addEvidence(evidence, "candidateNote", "Candidate Note", note.content, `Matched requested industry: ${industry}`, "Candidate Note");
+        reasons.push(`Candidate Note confirms ${industry} context.`);
+      }
+    }
+
+    for (const location of searchCriteria.location ?? []) {
+      if (includesNormalized(note.content, location)) {
+        rank += 1;
+        addEvidence(evidence, "candidateNote", "Candidate Note", note.content, `Matched requested location: ${location}`, "Candidate Note");
+        reasons.push(`Candidate Note confirms ${location} preference.`);
+      }
+    }
+
+    if (searchCriteria.availability && includesNormalized(note.content, searchCriteria.availability)) {
+      rank += 1;
+      addEvidence(evidence, "candidateNote", "Candidate Note", note.content, searchCriteria.availability, "Candidate Note");
+      reasons.push(`Candidate Note confirms availability context.`);
+    }
+  }
+
+  return rank;
 }
 
 function findSkillEvidence(skills, currentRole, requestedSkill) {
@@ -264,13 +308,13 @@ function isStaleDate(value) {
   return Number.isFinite(year) && year < 2026;
 }
 
-function addEvidence(evidence, field, label, value, matched) {
+function addEvidence(evidence, field, label, value, matched, source = "Candidate Record") {
   if (!value) {
     return;
   }
 
   evidence.push({
-    source: "Candidate Record",
+    source,
     field,
     label,
     value,
@@ -306,7 +350,7 @@ function uniqueEvidence(evidence) {
   const seen = new Set();
 
   return evidence.filter((item) => {
-    const key = `${item.field}:${item.value}:${item.matched}`;
+    const key = `${item.source}:${item.field}:${item.value}:${item.matched}`;
 
     if (seen.has(key)) {
       return false;
