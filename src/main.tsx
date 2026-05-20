@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { createSearchRequest, importCsvTalentPool } from "./api-client.js";
 import { useAppStore, type ComparisonReport, type CopilotErrorState } from "./app-store.js";
+import { createSearchRequestFailureOutput } from "./copilot-tool-output.js";
 import type { CandidateRecord } from "./csv-candidate-records.js";
 import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "./message-draft.js";
 import type { SearchCriteria } from "./search-criteria.js";
@@ -1532,7 +1533,19 @@ function CopilotPanel({
       const searchRequest = getInputString(toolCall.input, "searchRequest");
       if (!searchRequest) return;
 
-      const persisted = await createSearchRequest({ searchRequest });
+      let persisted: Awaited<ReturnType<typeof createSearchRequest>>;
+
+      try {
+        persisted = await createSearchRequest({ searchRequest });
+      } catch (error) {
+        outputToolCall(createSearchRequestFailureOutput(error));
+        onCopilotError({
+          kind: "server",
+          message: error instanceof Error ? error.message : "The Search Request could not be created.",
+        });
+        return;
+      }
+
       const searchCriteria = persisted.searchRequest.searchCriteria;
       const shortlist = current.candidateRecords.length > 0 ? buildShortlist(current.candidateRecords, searchCriteria) : [];
       const matchCount = shortlist.length;
