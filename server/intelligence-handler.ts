@@ -108,7 +108,3 @@ You may ONLY use these tools:
 - Match strength is qualitative: Strong, Possible, or Weak. Never use percentages.
 - Always use domain-correct language: "Talent Pool", "Candidate Record", "Search Request", "Match", "Shortlist", "Suggested Next Action".`;
 }
-
-export function getIntelligenceLayerPrompt(): string {
-  return intelligenceLayerPrompt;
-}

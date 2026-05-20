@@ -12,14 +12,17 @@
     "dev": "concurrently -n client,server -c cyan,magenta \"vite\" \"tsx server/index.ts\"",
     "dev:client": "vite",
     "dev:server": "tsx server/index.ts",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && tsc --noEmit -p tsconfig.server.json && vite build",
     "preview": "vite preview",
-    "check": "tsc --noEmit && node --check src/csv-candidate-records.js && node --check src/search-criteria.js && node --check src/shortlist-matches.js && node --check src/message-draft.js && node --check scripts/check-csv-parser.js && node --check scripts/check-search-criteria.js && node --check scripts/check-shortlist-matches.js && node --check scripts/check-message-draft.js && tsx scripts/check-app-store-session.ts",
-    "check:csv": "node scripts/check-csv-parser.js",
-    "check:search-criteria": "node scripts/check-search-criteria.js",
-    "check:shortlist": "node scripts/check-shortlist-matches.js",
-    "check:message-draft": "node scripts/check-message-draft.js",
-    "check:app-store": "tsx scripts/check-app-store-session.ts"
+    "test": "vitest",
+    "test:run": "vitest run",
+    "check": "tsc --noEmit && tsc --noEmit -p tsconfig.server.json && node --check src/csv-candidate-records.js && node --check src/search-criteria.js && node --check src/shortlist-matches.js && node --check src/message-draft.js && vitest run",
+    "check:csv": "vitest run tests/csv-candidate-records.test.ts",
+    "check:search-criteria": "vitest run tests/search-criteria.test.ts",
+    "check:shortlist": "vitest run tests/shortlist-matches.test.ts",
+    "check:message-draft": "vitest run tests/message-draft.test.ts",
+    "check:app-store": "vitest run tests/app-store-session.test.ts",
+    "check:api-boundary": "vitest run tests/api-boundary.test.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.63",
@@ -36,6 +39,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
+    "@types/node": "^25.9.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
@@ -43,6 +47,7 @@
     "tailwindcss": "^4.3.0",
     "tsx": "^4.21.1",
     "typescript": "^6.0.3",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "vitest": "^4.1.6"
   }
 }
