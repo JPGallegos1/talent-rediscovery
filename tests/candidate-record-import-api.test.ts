@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createApiApp } from "../server/app.js";
+import type { RecruitingMemoryRepository } from "../server/recruiting-memory.js";
 
 describe("Candidate Record import API", () => {
   it("persists CSV rows as minimal Candidates and evidence-bearing Candidate Records", async () => {
@@ -111,5 +112,53 @@ describe("Candidate Record import API", () => {
     ]);
     expect(payload.candidateRecords[0].possibleDuplicateCandidateRecordIds).toEqual(["candidate_record_2"]);
     expect(payload.candidateRecords[1].possibleDuplicateCandidateRecordIds).toEqual(["candidate_record_1"]);
+  });
+
+  it("does not flag blank-name Candidate Records as duplicates", async () => {
+    const app = createApiApp({ env: {} });
+    const csvText = [
+      "Name,Current Role,Skills",
+      ",Senior React Engineer,React",
+      ",Backend Engineer,Node.js",
+    ].join("\n");
+
+    const response = await app.request("/api/talent-pool/import-csv", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fileName: "talent-pool.csv", csvText }),
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(payload.candidateRecords).toHaveLength(2);
+    expect(payload.candidateRecords[0].possibleDuplicateCandidateRecordIds).toEqual([]);
+    expect(payload.candidateRecords[1].possibleDuplicateCandidateRecordIds).toEqual([]);
+  });
+
+  it("classifies repository import failures as server errors", async () => {
+    const failingRepository: RecruitingMemoryRepository = {
+      async importCandidateRecords() {
+        throw new Error("database unavailable");
+      },
+      async listCandidateRecords() {
+        return [];
+      },
+    };
+    const app = createApiApp({ env: {}, recruitingMemory: failingRepository });
+
+    const response = await app.request("/api/talent-pool/import-csv", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ fileName: "talent-pool.csv", csvText: "Name\nAda" }),
+    });
+    const payload = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(payload).toEqual({
+      error: {
+        category: "server_error",
+        message: "Talent Pool File could not be imported.",
+      },
+    });
   });
 });

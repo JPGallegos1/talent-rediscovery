@@ -91,8 +91,18 @@ export function createApiApp({ env = process.env, recruitingMemory = createMemor
       return c.json(copilotError("validation_error", "Talent Pool import must include fileName and csvText."), 400);
     }
 
+    let parsed: ReturnType<typeof parseCsvTalentPool>;
+
     try {
-      const parsed = parseCsvTalentPool(payload.csvText);
+      parsed = parseCsvTalentPool(payload.csvText);
+    } catch (error) {
+      return c.json(
+        copilotError("validation_error", error instanceof Error ? error.message : "Talent Pool File could not be parsed."),
+        400,
+      );
+    }
+
+    try {
       const result = await recruitingMemory.importCandidateRecords({
         fileName: payload.fileName,
         creatorId: payload.creatorId ?? null,
@@ -101,10 +111,9 @@ export function createApiApp({ env = process.env, recruitingMemory = createMemor
 
       return c.json(result, 201);
     } catch (error) {
-      return c.json(
-        copilotError("validation_error", error instanceof Error ? error.message : "Talent Pool File could not be imported."),
-        400,
-      );
+      console.error("Talent Pool import failed", error);
+
+      return c.json(copilotError("server_error", "Talent Pool File could not be imported."), 500);
     }
   });
 
