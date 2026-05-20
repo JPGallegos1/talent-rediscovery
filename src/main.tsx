@@ -4,11 +4,11 @@ import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvide
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { importCsvTalentPool } from "./api-client.js";
+import { createSearchRequest, importCsvTalentPool } from "./api-client.js";
 import { useAppStore, type ComparisonReport, type CopilotErrorState } from "./app-store.js";
 import type { CandidateRecord } from "./csv-candidate-records.js";
 import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "./message-draft.js";
-import { interpretSearchCriteria, type SearchCriteria } from "./search-criteria.js";
+import type { SearchCriteria } from "./search-criteria.js";
 import { buildShortlist, type Match } from "./shortlist-matches.js";
 import { toCompactShortlistContext } from "./intelligence-layer.js";
 import "./styles.css";
@@ -1518,7 +1518,7 @@ function CopilotPanel({
     [],
   );
 
-  const handleToolCall: ChatOnToolCallCallback<UIMessage> = ({ toolCall }) => {
+  const handleToolCall: ChatOnToolCallCallback<UIMessage> = async ({ toolCall }) => {
     const current = useAppStore.getState();
     const outputToolCall = (output: Record<string, unknown>) => {
       void addToolOutputRef.current?.({
@@ -1532,7 +1532,8 @@ function CopilotPanel({
       const searchRequest = getInputString(toolCall.input, "searchRequest");
       if (!searchRequest) return;
 
-      const searchCriteria = interpretSearchCriteria(searchRequest);
+      const persisted = await createSearchRequest({ searchRequest });
+      const searchCriteria = persisted.searchRequest.searchCriteria;
       const shortlist = current.candidateRecords.length > 0 ? buildShortlist(current.candidateRecords, searchCriteria) : [];
       const matchCount = shortlist.length;
 

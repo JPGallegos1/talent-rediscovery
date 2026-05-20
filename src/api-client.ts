@@ -1,4 +1,5 @@
 import type { CandidateRecord } from "./csv-candidate-records.js";
+import type { SearchCriteria } from "./search-criteria.js";
 
 export type ImportTalentPoolResult = {
   imported: {
@@ -6,6 +7,19 @@ export type ImportTalentPoolResult = {
     candidateRecordCount: number;
   };
   candidateRecords: CandidateRecord[];
+};
+
+export type SearchRequestMemory = {
+  id: string;
+  originalText: string;
+  searchCriteria: SearchCriteria;
+  criteriaEditable: false;
+  creatorId: string | null;
+  createdAt: string;
+};
+
+export type CreateSearchRequestResult = {
+  searchRequest: SearchRequestMemory;
 };
 
 type FetchLike = typeof fetch;
@@ -28,4 +42,24 @@ export async function importCsvTalentPool(
   }
 
   return response.json() as Promise<ImportTalentPoolResult>;
+}
+
+export async function createSearchRequest(
+  payload: { searchRequest: string; creatorId?: string | null },
+  fetchImpl: FetchLike = fetch,
+): Promise<CreateSearchRequestResult> {
+  const response = await fetchImpl("/api/search-requests", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null) as { error?: { message?: unknown } } | null;
+    const message = typeof error?.error?.message === "string" ? error.error.message : "The Search Request could not be created.";
+
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<CreateSearchRequestResult>;
 }
