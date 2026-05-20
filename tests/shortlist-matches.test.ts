@@ -42,4 +42,47 @@ describe("Shortlist matching", () => {
       reactShortlist.map((match) => match.candidateRecord.rowNumber),
     );
   });
+
+  it("enriches Matches with confirmed Candidate Note evidence only", () => {
+    const talentPool = parseCsvTalentPool([
+      "Name,Current Role,Skills,Location,English Level",
+      "Ada Lovelace,Senior React Engineer,React,Remote,Advanced",
+    ].join("\n"));
+    const candidateRecord = { ...talentPool.candidateRecords[0], candidateId: "candidate_1" };
+    const shortlist = buildShortlist(
+      [candidateRecord],
+      interpretSearchCriteria("Senior React profiles with fintech experience and advanced English"),
+      {
+        candidateNotes: [
+          {
+            id: "candidate_note_1",
+            candidateId: "candidate_1",
+            content: "Recruiter confirmed fintech marketplace experience and preference for remote roles.",
+            confirmed: true,
+          },
+          {
+            id: "candidate_note_proposal_1",
+            candidateId: "candidate_1",
+            content: "Unconfirmed proposal says banking experience.",
+            confirmed: false,
+          },
+        ],
+      },
+    );
+
+    expect(shortlist).toHaveLength(1);
+    expect(shortlist[0].evidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: "Candidate Note",
+          field: "candidateNote",
+          label: "Candidate Note",
+          value: "Recruiter confirmed fintech marketplace experience and preference for remote roles.",
+          matched: "Matched requested industry: fintech",
+        }),
+      ]),
+    );
+    expect(shortlist[0].evidence.some((item) => item.value.includes("Unconfirmed proposal"))).toBe(false);
+    expect(shortlist[0].reasons.some((reason) => reason.includes("Candidate Note confirms fintech"))).toBe(true);
+  });
 });

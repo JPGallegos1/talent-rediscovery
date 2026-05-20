@@ -4,11 +4,19 @@ import type { SearchCriteria } from "./search-criteria.js";
 export type MatchStrength = "Strong" | "Possible" | "Weak";
 
 export type MatchEvidence = {
-  source: "Candidate Record";
+  source: "Candidate Record" | "Candidate Note";
   field: string;
   label: string;
   value: string;
   matched: string;
+};
+
+export type MatchCandidateNote = {
+  id: string;
+  candidateId: string;
+  content: string;
+  confirmed?: boolean;
+  durable?: boolean;
 };
 
 export type Match = {
@@ -21,4 +29,8 @@ export type Match = {
   suggestedNextAction: string;
 };
 
-export function buildShortlist(candidateRecords: CandidateRecord[], searchCriteria: SearchCriteria | null, options?: { limit?: number }): Match[];
+export function buildShortlist(
+  candidateRecords: CandidateRecord[],
+  searchCriteria: SearchCriteria | null,
+  options?: { limit?: number; candidateNotes?: MatchCandidateNote[] },
+): Match[];

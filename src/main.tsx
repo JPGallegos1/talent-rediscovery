@@ -4,7 +4,7 @@ import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvide
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { createSearchRequest, importCsvTalentPool } from "./api-client.js";
+import { createSearchRequest, importCsvTalentPool, listCandidateNotes } from "./api-client.js";
 import { useAppStore, type ComparisonReport, type CopilotErrorState } from "./app-store.js";
 import { createSearchRequestFailureOutput } from "./copilot-tool-output.js";
 import type { CandidateRecord } from "./csv-candidate-records.js";
@@ -619,6 +619,10 @@ function ShortlistMatchCard({ match, index }: { match: Match; index: number }) {
       </p>
     </Link>
   );
+}
+
+function getCandidateId(record: CandidateRecord) {
+  return "candidateId" in record && typeof record.candidateId === "string" ? record.candidateId : "";
 }
 
 function getStrengthClass(strength: Match["strength"]) {
@@ -1534,20 +1538,27 @@ function CopilotPanel({
       if (!searchRequest) return;
 
       let persisted: Awaited<ReturnType<typeof createSearchRequest>>;
+      let candidateNotes: Awaited<ReturnType<typeof listCandidateNotes>>["candidateNotes"] = [];
 
       try {
         persisted = await createSearchRequest({ searchRequest });
+        const candidateIds = current.candidateRecords
+          .map((record) => getCandidateId(record))
+          .filter((candidateId): candidateId is string => !!candidateId);
+        candidateNotes = candidateIds.length > 0 ? (await listCandidateNotes(candidateIds)).candidateNotes : [];
       } catch (error) {
         outputToolCall(createSearchRequestFailureOutput(error));
         onCopilotError({
           kind: "server",
-          message: error instanceof Error ? error.message : "The Search Request could not be created.",
+          message: error instanceof Error ? error.message : "The Search Request or Candidate Notes could not be loaded.",
         });
         return;
       }
 
       const searchCriteria = persisted.searchRequest.searchCriteria;
-      const shortlist = current.candidateRecords.length > 0 ? buildShortlist(current.candidateRecords, searchCriteria) : [];
+      const shortlist = current.candidateRecords.length > 0
+        ? buildShortlist(current.candidateRecords, searchCriteria, { candidateNotes })
+        : [];
       const matchCount = shortlist.length;
 
       current.applySearchRequest({ searchRequest, searchCriteria, shortlist });

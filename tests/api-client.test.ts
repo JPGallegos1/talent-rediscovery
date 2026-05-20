@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSearchRequest, importCsvTalentPool } from "../src/api-client.js";
+import { createSearchRequest, importCsvTalentPool, listCandidateNotes } from "../src/api-client.js";
 
 describe("admin API client", () => {
   it("imports CSV Talent Pool Files through the API boundary", async () => {
@@ -67,5 +67,39 @@ describe("admin API client", () => {
     expect(result.searchRequest.criteriaEditable).toBe(false);
     expect(requests[0].input).toBe("/api/search-requests");
     expect(JSON.parse(String(requests[0].init?.body))).toEqual({ searchRequest: "Senior React profiles" });
+  });
+
+  it("loads Candidate Notes through the API boundary for matching", async () => {
+    const requests: Array<RequestInfo | URL> = [];
+    const fetchImpl = async (input: RequestInfo | URL) => {
+      requests.push(input);
+
+      return new Response(
+        JSON.stringify({
+          candidateNotes: [
+            {
+              id: "candidate_note_1",
+              candidateId: String(input).includes("candidate_1") ? "candidate_1" : "candidate_2",
+              content: "Confirmed fintech experience.",
+              provenance: {
+                sourceType: "manual",
+                creatorId: "recruiter-1",
+                createdAt: "2026-05-20T00:00:00.000Z",
+                confirmerId: "recruiter-1",
+                confirmedAt: "2026-05-20T00:00:00.000Z",
+                uncertainty: null,
+                staleness: null,
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    };
+
+    const result = await listCandidateNotes(["candidate_1", "candidate_1", "candidate_2"], fetchImpl);
+
+    expect(requests).toEqual(["/api/candidates/candidate_1/notes", "/api/candidates/candidate_2/notes"]);
+    expect(result.candidateNotes).toHaveLength(2);
   });
 });
