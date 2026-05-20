@@ -149,6 +149,11 @@ export function createMemoryRecruitingMemoryRepository(): RecruitingMemoryReposi
 function flagPossibleDuplicates(records: PersistedCandidateRecord[]) {
   for (const record of records) {
     const recordKey = getDuplicateKey(record);
+    if (!recordKey) {
+      record.possibleDuplicateCandidateRecordIds = [];
+      continue;
+    }
+
     record.possibleDuplicateCandidateRecordIds = records
       .filter((candidateRecord) => candidateRecord.id !== record.id && getDuplicateKey(candidateRecord) === recordKey)
       .map((candidateRecord) => candidateRecord.id);
