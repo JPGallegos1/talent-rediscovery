@@ -2,12 +2,15 @@ import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from 
 import { createOpenAI } from "@ai-sdk/openai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { parseCsvTalentPool } from "../src/csv-candidate-records.js";
 import { buildSystemPrompt, intelligenceActionTools } from "./intelligence-handler.js";
+import { createMemoryRecruitingMemoryRepository, type RecruitingMemoryRepository } from "./recruiting-memory.js";
 
 type ApiEnvironment = Record<string, string | undefined>;
 
 type ApiAppOptions = {
   env?: ApiEnvironment;
+  recruitingMemory?: RecruitingMemoryRepository;
 };
 
 type ChatPayload = {
@@ -51,11 +54,22 @@ function copilotError(category: "validation_error" | "configuration_error" | "se
   return { error: { category, message } };
 }
 
+function isImportCsvPayload(value: unknown): value is { fileName: string; csvText: string; creatorId?: string | null } {
+  return (
+    isRecord(value) &&
+    typeof value.fileName === "string" &&
+    value.fileName.trim().length > 0 &&
+    typeof value.csvText === "string" &&
+    value.csvText.trim().length > 0 &&
+    (value.creatorId === undefined || typeof value.creatorId === "string" || value.creatorId === null)
+  );
+}
+
 export function getChatModel(env: ApiEnvironment = process.env) {
   return env.OPENAI_CHAT_MODEL || "gpt-4o";
 }
 
-export function createApiApp({ env = process.env }: ApiAppOptions = {}) {
+export function createApiApp({ env = process.env, recruitingMemory = createMemoryRecruitingMemoryRepository() }: ApiAppOptions = {}) {
   const openai = createOpenAI({
     apiKey: env.OPENAI_API_KEY,
   });
@@ -63,6 +77,51 @@ export function createApiApp({ env = process.env }: ApiAppOptions = {}) {
   const app = new Hono();
 
   app.use("/api/*", cors());
+
+  app.post("/api/talent-pool/import-csv", async (c) => {
+    let payload: unknown;
+
+    try {
+      payload = await c.req.json();
+    } catch {
+      return c.json(copilotError("validation_error", "Talent Pool import body must be valid JSON."), 400);
+    }
+
+    if (!isImportCsvPayload(payload)) {
+      return c.json(copilotError("validation_error", "Talent Pool import must include fileName and csvText."), 400);
+    }
+
+    let parsed: ReturnType<typeof parseCsvTalentPool>;
+
+    try {
+      parsed = parseCsvTalentPool(payload.csvText);
+    } catch (error) {
+      return c.json(
+        copilotError("validation_error", error instanceof Error ? error.message : "Talent Pool File could not be parsed."),
+        400,
+      );
+    }
+
+    try {
+      const result = await recruitingMemory.importCandidateRecords({
+        fileName: payload.fileName,
+        creatorId: payload.creatorId ?? null,
+        candidateRecords: parsed.candidateRecords,
+      });
+
+      return c.json(result, 201);
+    } catch (error) {
+      console.error("Talent Pool import failed", error);
+
+      return c.json(copilotError("server_error", "Talent Pool File could not be imported."), 500);
+    }
+  });
+
+  app.get("/api/candidate-records", async (c) => {
+    const candidateRecords = await recruitingMemory.listCandidateRecords();
+
+    return c.json({ candidateRecords });
+  });
 
   app.post("/api/chat", async (c) => {
     try {
