@@ -2,6 +2,7 @@ import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from 
 import { createOpenAI } from "@ai-sdk/openai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { deriveCandidateMemoryGaps } from "../src/candidate-memory.js";
 import { parseCsvTalentPool } from "../src/csv-candidate-records.js";
 import { interpretSearchCriteria } from "../src/search-criteria.js";
 import { buildSystemPrompt, intelligenceActionTools } from "./intelligence-handler.js";
@@ -261,6 +262,27 @@ export function createApiApp({ env = process.env, recruitingMemory = createMemor
     const candidateNotes = await recruitingMemory.listCandidateNotes(candidateId);
 
     return c.json({ candidateNotes });
+  });
+
+  app.get("/api/candidates/:candidateId/memory", async (c) => {
+    const candidateId = c.req.param("candidateId");
+
+    if (!(await recruitingMemory.candidateExists(candidateId))) {
+      return c.json(copilotError("validation_error", "Candidate does not exist."), 404);
+    }
+
+    const candidateRecords = (await recruitingMemory.listCandidateRecords())
+      .filter((candidateRecord) => candidateRecord.candidateId === candidateId);
+    const candidateNotes = await recruitingMemory.listCandidateNotes(candidateId);
+
+    return c.json({
+      candidateMemory: {
+        candidateId,
+        candidateRecords,
+        candidateNotes,
+        memoryGaps: deriveCandidateMemoryGaps(candidateRecords),
+      },
+    });
   });
 
   app.post("/api/chat", async (c) => {

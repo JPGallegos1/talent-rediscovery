@@ -4,8 +4,9 @@ import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvide
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { createSearchRequest, importCsvTalentPool, listCandidateNotes } from "./api-client.js";
+import { createSearchRequest, getCandidateMemory, importCsvTalentPool, listCandidateNotes } from "./api-client.js";
 import { useAppStore, type ComparisonReport, type CopilotErrorState } from "./app-store.js";
+import { formatProvenanceChips, splitMatchEvidenceByMemorySource, type CandidateMemory } from "./candidate-memory.js";
 import { createSearchRequestFailureOutput } from "./copilot-tool-output.js";
 import type { CandidateRecord } from "./csv-candidate-records.js";
 import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "./message-draft.js";
@@ -981,6 +982,9 @@ function MatchDetailRoute() {
   const setMessageDraft = useAppStore((state) => state.setMessageDraft);
   const selectMatch = useAppStore((state) => state.selectMatch);
   const match = shortlist.find((candidateMatch) => getMatchId(candidateMatch) === matchId);
+  const candidateId = match ? getCandidateId(match.candidateRecord) : "";
+  const [candidateMemory, setCandidateMemory] = useState<CandidateMemory | null>(null);
+  const [candidateMemoryStatus, setCandidateMemoryStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
 
   useEffect(() => {
     selectMatch(matchId);
@@ -988,8 +992,36 @@ function MatchDetailRoute() {
     return () => selectMatch(null);
   }, [matchId, selectMatch]);
 
+  useEffect(() => {
+    if (!candidateId) {
+      setCandidateMemory(null);
+      setCandidateMemoryStatus("idle");
+      return;
+    }
+
+    let isActive = true;
+    setCandidateMemoryStatus("loading");
+
+    getCandidateMemory(candidateId)
+      .then((result) => {
+        if (!isActive) return;
+        setCandidateMemory(result.candidateMemory);
+        setCandidateMemoryStatus("ready");
+      })
+      .catch(() => {
+        if (!isActive) return;
+        setCandidateMemory(null);
+        setCandidateMemoryStatus("error");
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [candidateId]);
+
   if (match) {
     const isDraftable = canDraftMessageFromSuggestedNextAction(match.suggestedNextAction);
+    const evidenceBySource = splitMatchEvidenceByMemorySource(match.evidence);
 
     function handleCreateDraft() {
       if (!match) {
@@ -1084,19 +1116,8 @@ function MatchDetailRoute() {
                 </h3>
               </div>
               <div className="space-y-4">
-                {match.evidence.map((item) => (
-                  <div key={item.label} className="rounded-lg border border-outline-soft/10 bg-surface-low p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-semibold text-slate">{item.label}</p>
-                        <p className="mt-1 text-sm leading-6 text-muted">{item.value}</p>
-                      </div>
-                      <span className="shrink-0 rounded bg-evidence-soft px-2 py-0.5 text-[10px] font-semibold text-evidence">
-                        {item.matched}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                <EvidenceSourceList title="Candidate Record evidence" items={evidenceBySource.candidateRecordEvidence} emptyText="No Candidate Record evidence contributed to this Match." />
+                <EvidenceSourceList title="Candidate Note evidence" items={evidenceBySource.candidateNoteEvidence} emptyText="No confirmed Candidate Notes contributed to this Match." />
               </div>
               {match.gaps.length > 0 ? (
                 <div className="mt-4 border-t border-outline-soft/10 pt-4">
@@ -1159,6 +1180,8 @@ function MatchDetailRoute() {
                 )}
               </div>
             </section>
+
+            <CandidateMemoryPanel candidateId={candidateId} candidateMemory={candidateMemory} status={candidateMemoryStatus} />
 
             <section className="overflow-hidden rounded-xl border border-primary/10 bg-surface-lowest shadow-lg">
               <div className="border-b border-outline-soft/10 bg-surface-container-low px-6 py-4">
@@ -1224,6 +1247,180 @@ function MatchDetailRoute() {
       </Link>
     </section>
   );
+}
+
+function EvidenceSourceList({ title, items, emptyText }: { title: string; items: Match["evidence"]; emptyText: string }) {
+  return (
+    <div>
+      <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">{title}</h4>
+      {items.length > 0 ? (
+        <div className="space-y-3">
+          {items.map((item) => (
+            <div key={`${item.source}-${item.field}-${item.value}-${item.matched}`} className="rounded-lg border border-outline-soft/10 bg-surface-low p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-slate">{item.label}</p>
+                  <p className="mt-1 text-sm leading-6 text-muted">{item.value}</p>
+                </div>
+                <span className="shrink-0 rounded bg-evidence-soft px-2 py-0.5 text-[10px] font-semibold text-evidence">
+                  {item.matched}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-lg border border-outline-soft/10 bg-surface-low px-4 py-3 text-sm leading-6 text-muted">{emptyText}</p>
+      )}
+    </div>
+  );
+}
+
+function CandidateMemoryPanel({
+  candidateId,
+  candidateMemory,
+  status,
+}: {
+  candidateId: string;
+  candidateMemory: CandidateMemory | null;
+  status: "idle" | "loading" | "ready" | "error";
+}) {
+  if (!candidateId) {
+    return (
+      <section className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card">
+        <h3 className="font-serif text-xl font-semibold text-slate">
+          <span className="material-symbols-outlined mr-2 align-middle text-earth">folder_shared</span>
+          Candidate Memory
+        </h3>
+        <p className="mt-3 text-sm leading-6 text-muted">No Candidate identity is attached to this session Match, so Candidate Memory Retrieval is unavailable.</p>
+      </section>
+    );
+  }
+
+  if (status === "idle" || status === "loading") {
+    return (
+      <section className="rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card">
+        <h3 className="font-serif text-xl font-semibold text-slate">
+          <span className="material-symbols-outlined mr-2 align-middle text-earth">folder_shared</span>
+          Candidate Memory
+        </h3>
+        <p className="mt-3 flex items-center gap-2 text-sm leading-6 text-muted">
+          <span className="material-symbols-outlined animate-pulse text-[16px]">hourglass_top</span>
+          Retrieving stored memory for this known Candidate.
+        </p>
+      </section>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <section className="rounded-xl border border-risk/20 bg-risk-soft/30 p-6 shadow-stitch-card">
+        <h3 className="font-serif text-xl font-semibold text-slate">
+          <span className="material-symbols-outlined mr-2 align-middle text-risk">error</span>
+          Candidate Memory
+        </h3>
+        <p className="mt-3 text-sm leading-6 text-muted">Candidate Memory could not be loaded. The current Match remains available because Shortlists are derived session data.</p>
+      </section>
+    );
+  }
+
+  const candidateRecords = candidateMemory?.candidateRecords ?? [];
+  const candidateNotes = candidateMemory?.candidateNotes ?? [];
+  const memoryGaps = candidateMemory?.memoryGaps ?? [];
+
+  return (
+    <section className="space-y-5 rounded-xl border border-outline-soft/20 bg-surface-lowest p-6 shadow-stitch-card">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-earth">Read-only retrieval</p>
+        <h3 className="mt-1 font-serif text-xl font-semibold text-slate">
+          <span className="material-symbols-outlined mr-2 align-middle text-earth">folder_shared</span>
+          Candidate Memory
+        </h3>
+        <p className="mt-2 text-xs leading-5 text-muted">Known Candidate: {candidateId}. This panel retrieves stored memory; it does not search the Talent Pool.</p>
+      </div>
+
+      <div>
+        <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">Candidate Records</h4>
+        {candidateRecords.length > 0 ? (
+          <div className="space-y-3">
+            {candidateRecords.map((record) => (
+              <article key={record.id ?? `row-${record.rowNumber}`} className="rounded-lg border border-outline-soft/10 bg-surface-low p-4">
+                <p className="text-sm font-semibold text-slate">{record.canonicalFields.name || `Candidate Record ${record.rowNumber}`}</p>
+                <p className="mt-1 text-sm leading-6 text-muted">{record.canonicalFields.currentRole || "Role not provided"}</p>
+                <ProvenanceChips provenance={record.provenance} />
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-lg bg-surface-low px-4 py-3 text-sm leading-6 text-muted">No Candidate Records are attached to this Candidate.</p>
+        )}
+      </div>
+
+      <div>
+        <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">Confirmed Candidate Notes</h4>
+        {candidateNotes.length > 0 ? (
+          <div className="space-y-3">
+            {candidateNotes.map((note) => (
+              <article key={note.id} className="rounded-lg border border-outline-soft/10 bg-surface-low p-4">
+                <p className="text-sm leading-6 text-ink">{note.content}</p>
+                <ProvenanceChips provenance={note.provenance} />
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-lg bg-surface-low px-4 py-3 text-sm leading-6 text-muted">No confirmed Candidate Notes are stored for this Candidate.</p>
+        )}
+      </div>
+
+      <div>
+        <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">Memory Gaps</h4>
+        {memoryGaps.length > 0 ? (
+          <ul className="space-y-2 text-sm leading-6 text-muted">
+            {memoryGaps.map((gap) => (
+              <li key={gap} className="flex items-start gap-2">
+                <span className="mt-2 size-1.5 shrink-0 rounded-full bg-secondary-strong" />
+                {gap}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm leading-6 text-muted">No obvious Candidate Memory gaps were found.</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ProvenanceChips({
+  provenance,
+}: {
+  provenance: CandidateMemory["candidateRecords"][number]["provenance"] | CandidateMemory["candidateNotes"][number]["provenance"];
+}) {
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {formatProvenanceChips(provenance).map((chip) => (
+        <span key={chip} className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${getProvenanceChipClass(chip)}`}>
+          {chip}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function getProvenanceChipClass(chip: string) {
+  if (chip.startsWith("Source:")) {
+    return "bg-slate-soft text-slate";
+  }
+
+  if (chip.startsWith("Confirmed")) {
+    return "bg-evidence-soft text-evidence";
+  }
+
+  if (chip.startsWith("Uncertain") || chip.startsWith("Stale")) {
+    return "bg-secondary-soft text-secondary-strong";
+  }
+
+  return "bg-surface-high text-muted";
 }
 
 function ComparisonReportRoute() {

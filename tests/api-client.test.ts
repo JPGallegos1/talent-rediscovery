@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSearchRequest, importCsvTalentPool, listCandidateNotes } from "../src/api-client.js";
+import { createSearchRequest, getCandidateMemory, importCsvTalentPool, listCandidateNotes } from "../src/api-client.js";
 
 describe("admin API client", () => {
   it("imports CSV Talent Pool Files through the API boundary", async () => {
@@ -101,5 +101,34 @@ describe("admin API client", () => {
 
     expect(requests).toEqual(["/api/candidates/candidate_1/notes", "/api/candidates/candidate_2/notes"]);
     expect(result.candidateNotes).toHaveLength(2);
+  });
+
+  it("loads Candidate Memory through the API boundary", async () => {
+    const requests: Array<RequestInfo | URL> = [];
+    const fetchImpl = async (input: RequestInfo | URL) => {
+      requests.push(input);
+
+      return new Response(
+        JSON.stringify({
+          candidateMemory: {
+            candidateId: "candidate_1",
+            candidateRecords: [],
+            candidateNotes: [],
+            memoryGaps: ["Missing Candidate Record field: Availability."],
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } },
+      );
+    };
+
+    const result = await getCandidateMemory("candidate_1", fetchImpl);
+
+    expect(requests).toEqual(["/api/candidates/candidate_1/memory"]);
+    expect(result.candidateMemory).toEqual({
+      candidateId: "candidate_1",
+      candidateRecords: [],
+      candidateNotes: [],
+      memoryGaps: ["Missing Candidate Record field: Availability."],
+    });
   });
 });
