@@ -104,4 +104,47 @@ describe("Candidate Notes API", () => {
       },
     });
   });
+
+  it("preserves inferred proposal origin when a Candidate Note is confirmed", async () => {
+    const app = createApiApp({ env: {} });
+    const candidateId = await importCandidate(app);
+
+    const proposalResponse = await app.request("/api/candidate-notes/propose", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        candidateId,
+        content: "Candidate prefers remote fintech roles.",
+        sourceType: "inferred",
+        creatorId: "serenity",
+      }),
+    });
+    const proposalPayload = await proposalResponse.json();
+
+    expect(proposalResponse.status).toBe(200);
+    expect(proposalPayload.proposedCandidateNote).toMatchObject({
+      sourceType: "inferred",
+      durable: false,
+    });
+
+    const confirmResponse = await app.request("/api/candidate-notes/confirm", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        candidateId,
+        content: proposalPayload.proposedCandidateNote.content,
+        sourceType: proposalPayload.proposedCandidateNote.sourceType,
+        creatorId: "serenity",
+        confirmerId: "recruiter-1",
+      }),
+    });
+    const confirmPayload = await confirmResponse.json();
+
+    expect(confirmResponse.status).toBe(201);
+    expect(confirmPayload.candidateNote.provenance).toMatchObject({
+      sourceType: "inferred",
+      creatorId: "serenity",
+      confirmerId: "recruiter-1",
+    });
+  });
 });
