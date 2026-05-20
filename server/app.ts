@@ -3,6 +3,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { parseCsvTalentPool } from "../src/csv-candidate-records.js";
+import { interpretSearchCriteria } from "../src/search-criteria.js";
 import { buildSystemPrompt, intelligenceActionTools } from "./intelligence-handler.js";
 import { createMemoryRecruitingMemoryRepository, type RecruitingMemoryRepository } from "./recruiting-memory.js";
 
@@ -65,6 +66,15 @@ function isImportCsvPayload(value: unknown): value is { fileName: string; csvTex
   );
 }
 
+function isSearchRequestPayload(value: unknown): value is { searchRequest: string; creatorId?: string | null } {
+  return (
+    isRecord(value) &&
+    typeof value.searchRequest === "string" &&
+    value.searchRequest.trim().length > 0 &&
+    (value.creatorId === undefined || typeof value.creatorId === "string" || value.creatorId === null)
+  );
+}
+
 export function getChatModel(env: ApiEnvironment = process.env) {
   return env.OPENAI_CHAT_MODEL || "gpt-4o";
 }
@@ -121,6 +131,35 @@ export function createApiApp({ env = process.env, recruitingMemory = createMemor
     const candidateRecords = await recruitingMemory.listCandidateRecords();
 
     return c.json({ candidateRecords });
+  });
+
+  app.post("/api/search-requests", async (c) => {
+    let payload: unknown;
+
+    try {
+      payload = await c.req.json();
+    } catch {
+      return c.json(copilotError("validation_error", "Search Request body must be valid JSON."), 400);
+    }
+
+    if (!isSearchRequestPayload(payload)) {
+      return c.json(copilotError("validation_error", "Search Request text is required."), 400);
+    }
+
+    const searchCriteria = interpretSearchCriteria(payload.searchRequest) ?? {};
+    const searchRequest = await recruitingMemory.createSearchRequest({
+      originalText: payload.searchRequest,
+      searchCriteria,
+      creatorId: payload.creatorId ?? null,
+    });
+
+    return c.json({ searchRequest }, 201);
+  });
+
+  app.get("/api/search-requests", async (c) => {
+    const searchRequests = await recruitingMemory.listSearchRequests();
+
+    return c.json({ searchRequests });
   });
 
   app.post("/api/chat", async (c) => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { importCsvTalentPool } from "../src/api-client.js";
+import { createSearchRequest, importCsvTalentPool } from "../src/api-client.js";
 
 describe("admin API client", () => {
   it("imports CSV Talent Pool Files through the API boundary", async () => {
@@ -39,5 +39,33 @@ describe("admin API client", () => {
     await expect(importCsvTalentPool({ fileName: "empty.csv", csvText: "Name\n" }, fetchImpl)).rejects.toThrow(
       /no Candidate Records/,
     );
+  });
+
+  it("creates Search Requests through the API boundary", async () => {
+    const requests: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
+    const fetchImpl = async (input: RequestInfo | URL, init?: RequestInit) => {
+      requests.push({ input, init });
+
+      return new Response(
+        JSON.stringify({
+          searchRequest: {
+            id: "search_request_1",
+            originalText: "Senior React profiles",
+            searchCriteria: { skills: ["React"], seniority: "Senior or Lead" },
+            criteriaEditable: false,
+            creatorId: null,
+            createdAt: "2026-05-20T00:00:00.000Z",
+          },
+        }),
+        { status: 201, headers: { "content-type": "application/json" } },
+      );
+    };
+
+    const result = await createSearchRequest({ searchRequest: "Senior React profiles" }, fetchImpl);
+
+    expect(result.searchRequest.searchCriteria).toEqual({ skills: ["React"], seniority: "Senior or Lead" });
+    expect(result.searchRequest.criteriaEditable).toBe(false);
+    expect(requests[0].input).toBe("/api/search-requests");
+    expect(JSON.parse(String(requests[0].init?.body))).toEqual({ searchRequest: "Senior React profiles" });
   });
 });
