@@ -1,3 +1,4 @@
+import type { CandidateMemory } from "./candidate-memory.js";
 import type { CandidateRecord } from "./csv-candidate-records.js";
 import type { SearchCriteria } from "./search-criteria.js";
 
@@ -39,6 +40,10 @@ export type CandidateNoteMemory = {
 
 export type ListCandidateNotesResult = {
   candidateNotes: CandidateNoteMemory[];
+};
+
+export type GetCandidateMemoryResult = {
+  candidateMemory: CandidateMemory;
 };
 
 type FetchLike = typeof fetch;
@@ -108,4 +113,17 @@ export async function listCandidateNotes(candidateIds: string[], fetchImpl: Fetc
   );
 
   return { candidateNotes: noteLists.flat() };
+}
+
+export async function getCandidateMemory(candidateId: string, fetchImpl: FetchLike = fetch): Promise<GetCandidateMemoryResult> {
+  const response = await fetchImpl(`/api/candidates/${encodeURIComponent(candidateId)}/memory`);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null) as { error?: { message?: unknown } } | null;
+    const message = typeof error?.error?.message === "string" ? error.error.message : "Candidate Memory could not be loaded.";
+
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<GetCandidateMemoryResult>;
 }
