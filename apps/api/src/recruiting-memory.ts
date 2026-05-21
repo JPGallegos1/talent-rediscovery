@@ -1,7 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { CandidateRecord } from "@recollect/domain/csv-candidate-records.js";
 import type { SearchCriteria } from "@recollect/domain/search-criteria.js";
-import { createNoopMemorySync, type MemorySync } from "./memory-sync.js";
+import { createMemorySync, createNoopMemorySync, type MemorySync } from "./memory-sync.js";
 
 type ApiEnvironment = Record<string, string | undefined>;
 
@@ -157,7 +157,11 @@ export function createRecruitingMemoryRepositoryFromEnv(
   env: ApiEnvironment = process.env,
   options: { client?: SupabaseRecruitingMemoryClient; memorySync?: MemorySync } = {},
 ): RecruitingMemoryRepository {
-  const memorySync = options.memorySync ?? createNoopMemorySync();
+  const memorySync = options.memorySync ?? (
+    env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY
+      ? createMemorySync(env.MEM0_API_URL)
+      : createNoopMemorySync()
+  );
 
   if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     return createSupabaseRecruitingMemoryRepository({
