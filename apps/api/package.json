@@ -16,6 +16,7 @@
     "@ai-sdk/openai": "^3.0.63",
     "@hono/node-server": "^2.0.2",
     "@recollect/domain": "workspace:*",
+    "@supabase/supabase-js": "^2.106.1",
     "ai": "^6.0.182",
     "hono": "^4.12.18",
     "zod": "^4.4.3"
