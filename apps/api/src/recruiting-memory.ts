@@ -234,7 +234,7 @@ export function createSupabaseRecruitingMemoryRepository(options: {
 
         const candidateRecords = allRecords.filter((record) => insertedIds.has(record.id));
 
-        memorySync.syncCandidateImport(candidates, candidateRecords);
+        scheduleMemorySync(() => memorySync.syncCandidateImport(candidates, candidateRecords));
 
         return {
           imported: {
@@ -273,7 +273,7 @@ export function createSupabaseRecruitingMemoryRepository(options: {
       );
 
       const searchRequest = toSearchRequest(row);
-      memorySync.syncSearchRequest(searchRequest);
+      scheduleMemorySync(() => memorySync.syncSearchRequest(searchRequest));
       return searchRequest;
     },
     async listSearchRequests() {
@@ -316,7 +316,7 @@ export function createSupabaseRecruitingMemoryRepository(options: {
       );
 
       const note = toCandidateNote(row);
-      memorySync.syncConfirmedNote(note);
+      scheduleMemorySync(() => memorySync.syncConfirmedNote(note));
       return note;
     },
     async listCandidateNotes(candidateId) {
@@ -382,7 +382,7 @@ export function createMemoryRecruitingMemoryRepository(options: { memorySync?: M
 
       flagPossibleDuplicates(candidateRecords);
 
-      memorySync.syncCandidateImport(importedCandidates, importedCandidateRecords);
+      scheduleMemorySync(() => memorySync.syncCandidateImport(importedCandidates, importedCandidateRecords));
 
       return {
         imported: {
@@ -408,7 +408,7 @@ export function createMemoryRecruitingMemoryRepository(options: { memorySync?: M
       nextSearchRequestId += 1;
       searchRequests.push(searchRequest);
 
-      memorySync.syncSearchRequest(searchRequest);
+      scheduleMemorySync(() => memorySync.syncSearchRequest(searchRequest));
 
       return searchRequest;
     },
@@ -437,7 +437,7 @@ export function createMemoryRecruitingMemoryRepository(options: { memorySync?: M
       nextCandidateNoteId += 1;
       candidateNotes.push(candidateNote);
 
-      memorySync.syncConfirmedNote(candidateNote);
+      scheduleMemorySync(() => memorySync.syncConfirmedNote(candidateNote));
 
       return candidateNote;
     },
@@ -445,6 +445,16 @@ export function createMemoryRecruitingMemoryRepository(options: { memorySync?: M
       return candidateNotes.filter((candidateNote) => candidateNote.candidateId === candidateId);
     },
   };
+}
+
+function scheduleMemorySync(sync: () => Promise<void>): void {
+  try {
+    void sync().catch((error) => {
+      console.error("mem0 sync error:", error);
+    });
+  } catch (error) {
+    console.error("mem0 sync error:", error);
+  }
 }
 
 async function unwrap<T>(query: PromiseLike<SupabaseQueryResult<T>>): Promise<T> {

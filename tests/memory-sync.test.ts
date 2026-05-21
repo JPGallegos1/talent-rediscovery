@@ -4,6 +4,7 @@ import {
   createNoopMemorySync,
   type MemorySync,
 } from "@recollect/api/memory-sync.js";
+import { createMemoryRecruitingMemoryRepository } from "@recollect/api/recruiting-memory.js";
 
 function captureFetch(): {
   capturedUrl: string;
@@ -262,6 +263,42 @@ describe("createMemorySync", () => {
     } finally {
       delete process.env.MEM0_API_URL;
       c.restore();
+    }
+  });
+});
+
+describe("RecruitingMemoryRepository memory sync", () => {
+  it("does not fail canonical persistence when injected sync rejects", async () => {
+    const logs: string[] = [];
+    const originalConsoleError = console.error;
+    console.error = (...args: unknown[]) => logs.push(args.map(String).join(" "));
+    const rejectingSync: MemorySync = {
+      async syncCandidateImport() {
+        throw new Error("mem0 unavailable");
+      },
+      async syncConfirmedNote() {
+        throw new Error("mem0 unavailable");
+      },
+      async syncSearchRequest() {
+        throw new Error("mem0 unavailable");
+      },
+    };
+
+    try {
+      const repository = createMemoryRecruitingMemoryRepository({ memorySync: rejectingSync });
+      const result = await repository.importCandidateRecords({
+        fileName: "test.csv",
+        creatorId: "user_1",
+        candidateRecords: [fakeRecord],
+      });
+
+      await Promise.resolve();
+
+      expect(result.imported.candidateRecordCount).toBe(1);
+      expect(await repository.listCandidateRecords()).toHaveLength(1);
+      expect(logs.some((log) => log.includes("mem0 unavailable"))).toBe(true);
+    } finally {
+      console.error = originalConsoleError;
     }
   });
 });
