@@ -3,7 +3,7 @@ import {
   isAllowedIntelligenceLayerActionType,
   type CompactShortlistMatchContext,
   type IntelligenceLayerAction,
-} from "./intelligence-layer.js";
+} from "@recollect/domain/intelligence-layer.js";
 
 const allowedActions: IntelligenceLayerAction[] = [
   { type: "createSearchRequest", searchRequest: "Senior React profiles with fintech experience" },

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { interpretSearchCriteria } from "../src/search-criteria.js";
+import { interpretSearchCriteria } from "@recollect/domain/search-criteria.js";
 
 describe("Search Criteria interpretation", () => {
   it("extracts transparent criteria from a natural-language Search Request", () => {

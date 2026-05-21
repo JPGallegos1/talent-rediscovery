@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createApiApp } from "../server/app.js";
+import { createApiApp } from "@recollect/api/app.js";
 
 describe("Candidate Memory API", () => {
   it("retrieves Candidate Records, confirmed Candidate Notes, provenance, and memory gaps for a known Candidate", async () => {

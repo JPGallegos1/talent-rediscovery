@@ -1,0 +1,28 @@
+{
+  "name": "@recollect/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "check": "tsc --noEmit -p tsconfig.json"
+  },
+  "exports": {
+    "./app.js": "./src/app.ts",
+    "./recruiting-memory.js": "./src/recruiting-memory.ts",
+    "./serenity-memory-policy.js": "./src/serenity-memory-policy.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^3.0.63",
+    "@hono/node-server": "^2.0.2",
+    "@recollect/domain": "workspace:*",
+    "ai": "^6.0.182",
+    "hono": "^4.12.18",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "tsx": "^4.21.1",
+    "typescript": "^6.0.3"
+  }
+}

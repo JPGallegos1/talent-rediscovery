@@ -1,8 +1,8 @@
 import { create } from "zustand";
 import type { UIMessage } from "ai";
-import type { CandidateRecord } from "./csv-candidate-records.js";
-import type { SearchCriteria } from "./search-criteria.js";
-import type { Match } from "./shortlist-matches.js";
+import type { CandidateRecord } from "@recollect/domain/csv-candidate-records.js";
+import type { SearchCriteria } from "@recollect/domain/search-criteria.js";
+import type { Match } from "@recollect/domain/shortlist-matches.js";
 
 export type ComparisonReportEvidence = {
   label: string;

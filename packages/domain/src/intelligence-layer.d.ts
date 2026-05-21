@@ -1,13 +1,13 @@
 import type { Match, MatchStrength } from "./shortlist-matches.js";
 
-export const intelligenceLayerActionTypes = [
+export const intelligenceLayerActionTypes: readonly [
   "createSearchRequest",
   "navigateToMatch",
   "explainMatch",
   "compareMatches",
   "requestMessageDraft",
   "showCurrentCriteria",
-] as const;
+];
 
 export type IntelligenceLayerActionType = (typeof intelligenceLayerActionTypes)[number];
 
@@ -37,24 +37,6 @@ export type CompactShortlistMatchContext = {
   suggestedNextAction: string;
 };
 
-export function isAllowedIntelligenceLayerActionType(actionType: string): actionType is IntelligenceLayerActionType {
-  return intelligenceLayerActionTypes.includes(actionType as IntelligenceLayerActionType);
-}
+export function isAllowedIntelligenceLayerActionType(actionType: string): actionType is IntelligenceLayerActionType;
 
-export function toCompactShortlistContext(matches: Match[]): CompactShortlistMatchContext[] {
-  return matches.map((match) => ({
-    matchId: `row-${match.candidateRecord.rowNumber}`,
-    candidateRecordLabel: match.candidateRecord.canonicalFields.name || `Candidate Record ${match.candidateRecord.rowNumber}`,
-    currentRole: match.candidateRecord.canonicalFields.currentRole,
-    strength: match.strength,
-    reasons: match.reasons,
-    evidence: match.evidence.map((item) => ({
-      label: item.label,
-      value: item.value,
-      matched: item.matched,
-    })),
-    gaps: match.gaps,
-    risks: match.risks,
-    suggestedNextAction: match.suggestedNextAction,
-  }));
-}
+export function toCompactShortlistContext(matches: Match[]): CompactShortlistMatchContext[];

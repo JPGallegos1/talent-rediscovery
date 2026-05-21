@@ -9,14 +9,14 @@
     "pnpm": ">=10"
   },
   "scripts": {
-    "dev": "concurrently -n client,server -c cyan,magenta \"vite\" \"tsx server/index.ts\"",
-    "dev:client": "vite",
-    "dev:server": "tsx server/index.ts",
-    "build": "tsc --noEmit && tsc --noEmit -p tsconfig.server.json && vite build",
-    "preview": "vite preview",
+    "dev": "concurrently -n client,server -c cyan,magenta \"pnpm --filter @recollect/admin dev\" \"pnpm --filter @recollect/api dev\"",
+    "dev:client": "pnpm --filter @recollect/admin dev",
+    "dev:server": "pnpm --filter @recollect/api dev",
+    "build": "pnpm --filter @recollect/domain check && pnpm --filter @recollect/api check && pnpm --filter @recollect/admin build",
+    "preview": "pnpm --filter @recollect/admin preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "check": "tsc --noEmit && tsc --noEmit -p tsconfig.server.json && node --check src/csv-candidate-records.js && node --check src/search-criteria.js && node --check src/shortlist-matches.js && node --check src/message-draft.js && vitest run",
+    "check": "pnpm --filter @recollect/domain check && pnpm --filter @recollect/api check && pnpm --filter @recollect/admin check && vitest run",
     "check:csv": "vitest run tests/csv-candidate-records.test.ts",
     "check:search-criteria": "vitest run tests/search-criteria.test.ts",
     "check:shortlist": "vitest run tests/shortlist-matches.test.ts",
@@ -25,6 +25,8 @@
     "check:api-boundary": "vitest run tests/api-boundary.test.ts"
   },
   "dependencies": {
+    "@recollect/api": "workspace:*",
+    "@recollect/domain": "workspace:*",
     "@ai-sdk/openai": "^3.0.63",
     "@ai-sdk/react": "^3.0.184",
     "@hono/node-server": "^2.0.2",

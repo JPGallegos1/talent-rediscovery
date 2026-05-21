@@ -1,4 +1,4 @@
-export function createSearchRequestFailureOutput(error: unknown) {
+export function createSearchRequestFailureOutput(error) {
   return {
     applied: false,
     error: {
