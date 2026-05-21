@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { CandidateRecord } from "@recollect/domain/csv-candidate-records.js";
 import type { SearchCriteria } from "@recollect/domain/search-criteria.js";
+import { createNoopMemorySync, type MemorySync } from "./memory-sync.js";
 
 type ApiEnvironment = Record<string, string | undefined>;
 
@@ -154,25 +155,30 @@ type CandidateNoteRow = {
 
 export function createRecruitingMemoryRepositoryFromEnv(
   env: ApiEnvironment = process.env,
-  options: { client?: SupabaseRecruitingMemoryClient } = {},
+  options: { client?: SupabaseRecruitingMemoryClient; memorySync?: MemorySync } = {},
 ): RecruitingMemoryRepository {
+  const memorySync = options.memorySync ?? createNoopMemorySync();
+
   if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     return createSupabaseRecruitingMemoryRepository({
       supabaseUrl: env.SUPABASE_URL,
       supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
       client: options.client,
+      memorySync,
     });
   }
 
-  return createMemoryRecruitingMemoryRepository();
+  return createMemoryRecruitingMemoryRepository({ memorySync });
 }
 
 export function createSupabaseRecruitingMemoryRepository(options: {
   supabaseUrl?: string;
   supabaseServiceRoleKey?: string;
   client?: SupabaseRecruitingMemoryClient;
+  memorySync?: MemorySync;
 }): RecruitingMemoryRepository {
   const client = options.client ?? createClient(options.supabaseUrl ?? "", options.supabaseServiceRoleKey ?? "");
+  const memorySync = options.memorySync ?? createNoopMemorySync();
 
   return {
     async importCandidateRecords(input) {
@@ -224,6 +230,8 @@ export function createSupabaseRecruitingMemoryRepository(options: {
 
         const candidateRecords = allRecords.filter((record) => insertedIds.has(record.id));
 
+        memorySync.syncCandidateImport(candidates, candidateRecords);
+
         return {
           imported: {
             candidateCount: candidates.length,
@@ -260,7 +268,9 @@ export function createSupabaseRecruitingMemoryRepository(options: {
           .single(),
       );
 
-      return toSearchRequest(row);
+      const searchRequest = toSearchRequest(row);
+      memorySync.syncSearchRequest(searchRequest);
+      return searchRequest;
     },
     async listSearchRequests() {
       const rows = await unwrap<SearchRequestRow[]>(
@@ -301,7 +311,9 @@ export function createSupabaseRecruitingMemoryRepository(options: {
           .single(),
       );
 
-      return toCandidateNote(row);
+      const note = toCandidateNote(row);
+      memorySync.syncConfirmedNote(note);
+      return note;
     },
     async listCandidateNotes(candidateId) {
       const rows = await unwrap<CandidateNoteRow[]>(
@@ -313,7 +325,8 @@ export function createSupabaseRecruitingMemoryRepository(options: {
   };
 }
 
-export function createMemoryRecruitingMemoryRepository(): RecruitingMemoryRepository {
+export function createMemoryRecruitingMemoryRepository(options: { memorySync?: MemorySync } = {}): RecruitingMemoryRepository {
+  const memorySync = options.memorySync ?? createNoopMemorySync();
   const candidates: Candidate[] = [];
   const candidateRecords: PersistedCandidateRecord[] = [];
   const searchRequests: SearchRequestMemory[] = [];
@@ -365,6 +378,8 @@ export function createMemoryRecruitingMemoryRepository(): RecruitingMemoryReposi
 
       flagPossibleDuplicates(candidateRecords);
 
+      memorySync.syncCandidateImport(importedCandidates, importedCandidateRecords);
+
       return {
         imported: {
           candidateCount: importedCandidates.length,
@@ -388,6 +403,8 @@ export function createMemoryRecruitingMemoryRepository(): RecruitingMemoryReposi
       };
       nextSearchRequestId += 1;
       searchRequests.push(searchRequest);
+
+      memorySync.syncSearchRequest(searchRequest);
 
       return searchRequest;
     },
@@ -415,6 +432,8 @@ export function createMemoryRecruitingMemoryRepository(): RecruitingMemoryReposi
       };
       nextCandidateNoteId += 1;
       candidateNotes.push(candidateNote);
+
+      memorySync.syncConfirmedNote(candidateNote);
 
       return candidateNote;
     },
