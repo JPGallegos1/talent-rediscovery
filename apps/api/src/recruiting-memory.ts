@@ -158,15 +158,15 @@ export function createRecruitingMemoryRepositoryFromEnv(
   options: { client?: SupabaseRecruitingMemoryClient; memorySync?: MemorySync } = {},
 ): RecruitingMemoryRepository {
   const memorySync = options.memorySync ?? (
-    env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY
+    env.SUPABASE_URL && env.SUPABASE_SECRET_KEY
       ? createMemorySync(env.MEM0_API_URL)
       : createNoopMemorySync()
   );
 
-  if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (env.SUPABASE_URL && env.SUPABASE_SECRET_KEY) {
     return createSupabaseRecruitingMemoryRepository({
       supabaseUrl: env.SUPABASE_URL,
-      supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+      supabaseSecretKey: env.SUPABASE_SECRET_KEY,
       client: options.client,
       memorySync,
     });
@@ -177,11 +177,11 @@ export function createRecruitingMemoryRepositoryFromEnv(
 
 export function createSupabaseRecruitingMemoryRepository(options: {
   supabaseUrl?: string;
-  supabaseServiceRoleKey?: string;
+  supabaseSecretKey?: string;
   client?: SupabaseRecruitingMemoryClient;
   memorySync?: MemorySync;
 }): RecruitingMemoryRepository {
-  const client = options.client ?? createClient(options.supabaseUrl ?? "", options.supabaseServiceRoleKey ?? "");
+  const client = options.client ?? createClient(options.supabaseUrl ?? "", options.supabaseSecretKey ?? "");
   const memorySync = options.memorySync ?? createNoopMemorySync();
 
   return {
