@@ -112,6 +112,7 @@ Serenity memory actions are separate from the current **Intelligence Layer** int
 - `apps/memory` is the Memory Intelligence Layer for Serenity-specific retrieval, extraction, enrichment, and reasoning work; it must not directly read from or write to Supabase.
 - `apps/memory` returns proposals, extracted fields, summaries, retrieval context, or note candidates to `apps/api` instead of persisting durable facts.
 - Durable writes to persisted recruiting memory must pass through `apps/api` and preserve confirmation, provenance, uncertainty, and relevance limits.
+- Turborepo (`turbo.json`) is the build orchestrator for the monorepo. Its pipeline declares task dependencies: `check` enforces that each package's checks run after its dependencies' checks; `build` runs after `^check` and caches `dist/**` outputs. `apps/memory` (FastAPI/Python) is external to the Turbo pipeline since it uses a separate language toolchain.
 
 ## Example Dialogue
 
