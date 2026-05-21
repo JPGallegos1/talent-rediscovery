@@ -17,6 +17,6 @@
     "jsx": "react-jsx",
     "types": ["vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
-  "exclude": ["server/**/*.ts"]
+  "include": ["apps/admin/src/**/*.ts", "apps/admin/src/**/*.tsx", "apps/admin/vite.config.ts"],
+  "exclude": ["apps/api/src/**/*.ts", "server/**/*.ts"]
 }

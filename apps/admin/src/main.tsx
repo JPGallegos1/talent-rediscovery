@@ -4,15 +4,15 @@ import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvide
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
+import { formatProvenanceChips, splitMatchEvidenceByMemorySource, type CandidateMemory } from "@recollect/domain/candidate-memory.js";
+import { createSearchRequestFailureOutput } from "@recollect/domain/copilot-tool-output.js";
+import type { CandidateRecord } from "@recollect/domain/csv-candidate-records.js";
+import { toCompactShortlistContext } from "@recollect/domain/intelligence-layer.js";
+import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "@recollect/domain/message-draft.js";
+import type { SearchCriteria } from "@recollect/domain/search-criteria.js";
+import { buildShortlist, type Match } from "@recollect/domain/shortlist-matches.js";
 import { createSearchRequest, getCandidateMemory, importCsvTalentPool, listCandidateNotes } from "./api-client.js";
 import { useAppStore, type ComparisonReport, type CopilotErrorState } from "./app-store.js";
-import { formatProvenanceChips, splitMatchEvidenceByMemorySource, type CandidateMemory } from "./candidate-memory.js";
-import { createSearchRequestFailureOutput } from "./copilot-tool-output.js";
-import type { CandidateRecord } from "./csv-candidate-records.js";
-import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "./message-draft.js";
-import type { SearchCriteria } from "./search-criteria.js";
-import { buildShortlist, type Match } from "./shortlist-matches.js";
-import { toCompactShortlistContext } from "./intelligence-layer.js";
 import "./styles.css";
 
 type CopilotErrorPayload = {

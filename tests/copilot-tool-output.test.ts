@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSearchRequestFailureOutput } from "../src/copilot-tool-output.js";
+import { createSearchRequestFailureOutput } from "@recollect/domain/copilot-tool-output.js";
 
 describe("Copilot tool output", () => {
   it("returns a tool result when Search Request persistence fails", () => {

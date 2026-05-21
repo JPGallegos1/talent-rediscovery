@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createApiApp } from "../server/app.js";
-import type { RecruitingMemoryRepository } from "../server/recruiting-memory.js";
+import { createApiApp } from "@recollect/api/app.js";
+import type { RecruitingMemoryRepository } from "@recollect/api/recruiting-memory.js";
 
 describe("Candidate Record import API", () => {
   it("persists CSV rows as minimal Candidates and evidence-bearing Candidate Records", async () => {

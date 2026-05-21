@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSearchRequest, getCandidateMemory, importCsvTalentPool, listCandidateNotes } from "../src/api-client.js";
+import { createSearchRequest, getCandidateMemory, importCsvTalentPool, listCandidateNotes } from "../apps/admin/src/api-client.js";
 
 describe("admin API client", () => {
   it("imports CSV Talent Pool Files through the API boundary", async () => {

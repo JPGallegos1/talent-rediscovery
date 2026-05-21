@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createApiApp } from "../server/app.js";
+import { createApiApp } from "@recollect/api/app.js";
 
 describe("Search Request API", () => {
   it("persists original text with a read-only Search Criteria snapshot", async () => {

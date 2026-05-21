@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createApiApp } from "../server/app.js";
+import { createApiApp } from "@recollect/api/app.js";
 
 async function importCandidate(app: ReturnType<typeof createApiApp>) {
   const response = await app.request("/api/talent-pool/import-csv", {

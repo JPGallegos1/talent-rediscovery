@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { parseCsvTalentPool } from "../src/csv-candidate-records.js";
-import { interpretSearchCriteria } from "../src/search-criteria.js";
-import { buildShortlist } from "../src/shortlist-matches.js";
+import { parseCsvTalentPool } from "@recollect/domain/csv-candidate-records.js";
+import { interpretSearchCriteria } from "@recollect/domain/search-criteria.js";
+import { buildShortlist } from "@recollect/domain/shortlist-matches.js";
 
 describe("Shortlist matching", () => {
   it("returns evidence-grounded Matches for a Search Request", async () => {
