@@ -7,7 +7,7 @@ import { parseCsvTalentPool } from "@recollect/domain/csv-candidate-records.js";
 import { interpretSearchCriteria } from "@recollect/domain/search-criteria.js";
 import { buildSystemPrompt, intelligenceActionTools } from "./intelligence-handler.js";
 import {
-  createMemoryRecruitingMemoryRepository,
+  createRecruitingMemoryRepositoryFromEnv,
   type CandidateNoteSourceType,
   type RecruitingMemoryRepository,
 } from "./recruiting-memory.js";
@@ -117,7 +117,9 @@ export function getChatModel(env: ApiEnvironment = process.env) {
   return env.OPENAI_CHAT_MODEL || "gpt-4o";
 }
 
-export function createApiApp({ env = process.env, recruitingMemory = createMemoryRecruitingMemoryRepository() }: ApiAppOptions = {}) {
+export function createApiApp(options: ApiAppOptions = {}) {
+  const env = options.env ?? process.env;
+  const recruitingMemory = options.recruitingMemory ?? createRecruitingMemoryRepositoryFromEnv(env);
   const openai = createOpenAI({
     apiKey: env.OPENAI_API_KEY,
   });
