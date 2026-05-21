@@ -10,6 +10,7 @@
   },
   "exports": {
     "./app.js": "./src/app.ts",
+    "./memory-client.js": "./src/memory-client.ts",
     "./recruiting-memory.js": "./src/recruiting-memory.ts",
     "./serenity-memory-policy.js": "./src/serenity-memory-policy.ts"
   },
