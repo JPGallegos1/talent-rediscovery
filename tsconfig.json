@@ -17,6 +17,6 @@
     "jsx": "react-jsx",
     "types": ["vite/client"]
   },
-  "include": ["apps/admin/src/**/*.ts", "apps/admin/src/**/*.tsx", "apps/admin/vite.config.ts"],
+  "include": ["apps/admin/src/**/*.ts", "apps/admin/src/**/*.tsx", "apps/admin/vite.config.ts", "apps/admin/src/routeTree.gen.ts"],
   "exclude": ["apps/api/src/**/*.ts", "server/**/*.ts"]
 }
