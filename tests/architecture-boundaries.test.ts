@@ -77,4 +77,67 @@ describe("architecture boundaries", () => {
 
     expect(violations).toEqual([]);
   });
+
+  it("keeps the admin layer from importing apps/api implementation files", async () => {
+    const adminFiles = await collectSourceFiles(join(workspaceRoot, "apps", "admin", "src"));
+    const forbiddenPatterns = [/from\s+["']@recollect\/api["']/, /from\s+["'][^"']*apps\/api\/src["']/];
+    const violations: string[] = [];
+
+    for (const file of adminFiles) {
+      const content = await readFile(file, "utf8");
+
+      if (forbiddenPatterns.some((pattern) => pattern.test(content))) {
+        violations.push(file);
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps the admin layer from reading backend secret environment variables", async () => {
+    const adminFiles = await collectSourceFiles(join(workspaceRoot, "apps", "admin", "src"));
+    const envVarPatterns = [/\bSUPABASE_SECRET_KEY\b/, /\bMEM0_API_KEY\b/, /\bOPENAI_API_KEY\b/];
+    const violations: string[] = [];
+
+    for (const file of adminFiles) {
+      const content = await readFile(file, "utf8");
+
+      if (envVarPatterns.some((pattern) => pattern.test(content))) {
+        violations.push(file);
+      }
+    }
+
+    const allowedFiles = new Set(["boundary-check.ts", "intelligence-layer.contract-check.ts"]);
+    const reportedViolations = violations.filter((file) => {
+      const baseName = file.split(/[/\\]/).pop() ?? "";
+      return !allowedFiles.has(baseName);
+    });
+
+    expect(reportedViolations).toEqual([]);
+  });
+
+  it("forbids TanStack Start server routes from bypassing apps/api for durable work", async () => {
+    const adminFiles = await collectSourceFiles(join(workspaceRoot, "apps", "admin", "src"));
+    const serverFnPattern = /createServerFn\s*\(/;
+    const apiRoutePattern = /createServerFileRoute\s*\(/;
+    const adminApiImportPattern = /from\s+["']\.\.\/api-client/;
+    const violations: string[] = [];
+
+    for (const file of adminFiles) {
+      const content = await readFile(file, "utf8");
+
+      const hasServerCode = serverFnPattern.test(content) || apiRoutePattern.test(content);
+
+      if (hasServerCode) {
+        const delegatesToApi = adminApiImportPattern.test(content) || /\/api\//.test(content);
+        const hasDocumentedDelegation = /delegates?\s+(secure|durable|persist|supabase)/i.test(content) || /frontend.?owned\s*(BFF|middleware)/i.test(content);
+
+        if (!delegatesToApi && !hasDocumentedDelegation) {
+          violations.push(file);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
 });
