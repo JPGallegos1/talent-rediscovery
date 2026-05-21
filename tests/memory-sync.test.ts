@@ -124,36 +124,39 @@ describe("createNoopMemorySync", () => {
 
 describe("createMemorySync", () => {
   beforeEach(() => {
-    delete process.env.MEM0_API_URL;
+    delete process.env.MEM0_API_KEY;
   });
 
-  it("posts candidate import to /memory", async () => {
+  it("posts candidate import to mem0 with API key auth", async () => {
     const c = captureFetch();
 
     try {
-      const sync = createMemorySync("http://mem0:8050");
+      const sync = createMemorySync("mem0-test-key");
       await sync.syncCandidateImport([fakeCandidate], [fakeRecord]);
 
-      expect(c.capturedUrl).toBe("http://mem0:8050/memory");
+      expect(c.capturedUrl).toBe("https://api.mem0.ai/v3/memories/add/");
       expect(c.capturedMethod).toBe("POST");
       expect(c.capturedHeaders["Content-Type"]).toBe("application/json");
+      expect(c.capturedHeaders.Authorization).toBe("Token mem0-test-key");
 
       const body = JSON.parse(c.capturedBody);
-      expect(body.type).toBe("candidate_import");
-      expect(body.candidates).toHaveLength(1);
-      expect(body.candidates[0].id).toBe("candidate_1");
-      expect(body.records).toHaveLength(1);
-      expect(body.records[0].skills).toEqual(["react"]);
+      expect(body.app_id).toBe("recollect");
+      expect(body.infer).toBe(false);
+      expect(body.metadata.source).toBe("recollect_candidate_import");
+      const messageContent = JSON.parse(body.messages[0].content);
+      expect(messageContent.type).toBe("candidate_import");
+      expect(messageContent.candidates).toHaveLength(1);
+      expect(messageContent.records[0].skills).toEqual(["react"]);
     } finally {
       c.restore();
     }
   });
 
-  it("posts confirmed note to /memory", async () => {
+  it("posts confirmed note to mem0", async () => {
     const c = captureFetch();
 
     try {
-      const sync = createMemorySync("http://mem0:8050");
+      const sync = createMemorySync("mem0-test-key");
       await sync.syncConfirmedNote({
         id: "note_1",
         candidateId: "candidate_1",
@@ -170,20 +173,21 @@ describe("createMemorySync", () => {
       });
 
       const body = JSON.parse(c.capturedBody);
-      expect(body.type).toBe("candidate_note");
-      expect(body.note.id).toBe("note_1");
-      expect(body.note.content).toBe("Prefers remote");
-      expect(body.note.sourceType).toBe("manual");
+      expect(body.user_id).toBe("candidate_1");
+      expect(body.messages[0].content).toBe("Prefers remote");
+      expect(body.metadata.noteId).toBe("note_1");
+      expect(body.metadata.source).toBe("recollect_candidate_note");
+      expect(body.metadata.sourceType).toBe("manual");
     } finally {
       c.restore();
     }
   });
 
-  it("posts search request to /memory", async () => {
+  it("posts search request to mem0", async () => {
     const c = captureFetch();
 
     try {
-      const sync = createMemorySync("http://mem0:8050");
+      const sync = createMemorySync("mem0-test-key");
       await sync.syncSearchRequest({
         id: "sr_1",
         originalText: "React developer fintech",
@@ -194,9 +198,10 @@ describe("createMemorySync", () => {
       });
 
       const body = JSON.parse(c.capturedBody);
-      expect(body.type).toBe("search_request");
-      expect(body.searchRequest.id).toBe("sr_1");
-      expect(body.searchRequest.originalText).toBe("React developer fintech");
+      expect(body.run_id).toBe("sr_1");
+      expect(body.messages[0].content).toBe("React developer fintech");
+      expect(body.metadata.source).toBe("recollect_search_request");
+      expect(body.metadata.searchCriteria).toEqual({ skills: ["react"], industries: ["fintech"] });
     } finally {
       c.restore();
     }
@@ -211,7 +216,7 @@ describe("createMemorySync", () => {
     globalThis.fetch = async () => new Response("Bad Gateway", { status: 502 });
 
     try {
-      const sync = createMemorySync("http://mem0:8050");
+      const sync = createMemorySync("mem0-test-key");
       await sync.syncCandidateImport([fakeCandidate], [fakeRecord]);
       expect(logs.some((l) => l.includes("502"))).toBe(true);
     } finally {
@@ -231,7 +236,7 @@ describe("createMemorySync", () => {
     };
 
     try {
-      const sync = createMemorySync("http://mem0:8050");
+      const sync = createMemorySync("mem0-test-key");
       await sync.syncCandidateImport([fakeCandidate], [fakeRecord]);
       expect(logs.some((l) => l.includes("ECONNREFUSED"))).toBe(true);
     } finally {
@@ -240,29 +245,51 @@ describe("createMemorySync", () => {
     }
   });
 
-  it("strips trailing slash from base URL", async () => {
+  it("supports an explicit base URL override", async () => {
     const c = captureFetch();
 
     try {
-      const sync = createMemorySync("http://mem0:8050/");
+      const sync = createMemorySync("mem0-test-key", "http://mem0:8050/");
       await sync.syncCandidateImport([fakeCandidate], [fakeRecord]);
-      expect(c.capturedUrl).toBe("http://mem0:8050/memory");
+      expect(c.capturedUrl).toBe("http://mem0:8050/v3/memories/add/");
     } finally {
       c.restore();
     }
   });
 
-  it("defaults to MEM0_API_URL env var", async () => {
-    process.env.MEM0_API_URL = "http://custom:9000";
+  it("defaults to MEM0_API_KEY env var", async () => {
+    process.env.MEM0_API_KEY = "env-mem0-key";
     const c = captureFetch();
 
     try {
       const sync = createMemorySync();
       await sync.syncCandidateImport([fakeCandidate], [fakeRecord]);
-      expect(c.capturedUrl).toBe("http://custom:9000/memory");
+      expect(c.capturedHeaders.Authorization).toBe("Token env-mem0-key");
     } finally {
-      delete process.env.MEM0_API_URL;
+      delete process.env.MEM0_API_KEY;
       c.restore();
+    }
+  });
+
+  it("skips sync when MEM0_API_KEY is missing", async () => {
+    const originalFetch = globalThis.fetch;
+    const logs: string[] = [];
+    const originalConsoleError = console.error;
+    let called = false;
+    console.error = (...args: unknown[]) => logs.push(args.map(String).join(" "));
+    globalThis.fetch = async () => {
+      called = true;
+      return new Response(JSON.stringify({}), { status: 200 });
+    };
+
+    try {
+      const sync = createMemorySync();
+      await sync.syncCandidateImport([fakeCandidate], [fakeRecord]);
+      expect(called).toBe(false);
+      expect(logs.some((log) => log.includes("MEM0_API_KEY"))).toBe(true);
+    } finally {
+      globalThis.fetch = originalFetch;
+      console.error = originalConsoleError;
     }
   });
 });

@@ -5,6 +5,11 @@
       "type": "remote",
       "url": "https://mcp.supabase.com/mcp?project_ref=oxsbjgawvzhcskqebzyk",
       "enabled": true
+    },
+    "mem0-mcp": {
+      "type": "remote",
+      "url": "https://mcp.mem0.ai/mcp",
+      "enabled": true
     }
   },
   "permission": {

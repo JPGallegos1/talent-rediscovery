@@ -158,8 +158,8 @@ export function createRecruitingMemoryRepositoryFromEnv(
   options: { client?: SupabaseRecruitingMemoryClient; memorySync?: MemorySync } = {},
 ): RecruitingMemoryRepository {
   const memorySync = options.memorySync ?? (
-    env.SUPABASE_URL && env.SUPABASE_SECRET_KEY
-      ? createMemorySync(env.MEM0_API_URL)
+    env.SUPABASE_URL && env.SUPABASE_SECRET_KEY && env.MEM0_API_KEY
+      ? createMemorySync(env.MEM0_API_KEY)
       : createNoopMemorySync()
   );
 
