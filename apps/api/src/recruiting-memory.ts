@@ -1,5 +1,17 @@
+import { createClient } from "@supabase/supabase-js";
 import type { CandidateRecord } from "@recollect/domain/csv-candidate-records.js";
 import type { SearchCriteria } from "@recollect/domain/search-criteria.js";
+
+type ApiEnvironment = Record<string, string | undefined>;
+
+type SupabaseQueryResult<T> = {
+  data: T | null;
+  error: { message: string } | null;
+};
+
+type SupabaseRecruitingMemoryClient = {
+  from(table: string): any;
+};
 
 export type Candidate = {
   id: string;
@@ -91,6 +103,200 @@ export type RecruitingMemoryRepository = {
   confirmCandidateNote(input: CandidateNoteConfirmationInput): Promise<CandidateNote>;
   listCandidateNotes(candidateId: string): Promise<CandidateNote[]>;
 };
+
+type CandidateRow = {
+  id: string;
+  created_at?: string;
+  createdAt?: string;
+};
+
+type CandidateRecordRow = {
+  id: string;
+  candidate_id?: string;
+  candidateId?: string;
+  row_number?: number;
+  rowNumber?: number;
+  canonical_fields?: CandidateRecord["canonicalFields"];
+  canonicalFields?: CandidateRecord["canonicalFields"];
+  source_fields?: CandidateRecord["sourceFields"];
+  sourceFields?: CandidateRecord["sourceFields"];
+  source_field_mappings?: CandidateRecord["sourceFieldMappings"];
+  sourceFieldMappings?: CandidateRecord["sourceFieldMappings"];
+  gaps?: CandidateRecord["gaps"];
+  search_terms?: string[];
+  searchTerms?: string[];
+  provenance: Provenance;
+  possible_duplicate_candidate_record_ids?: string[];
+  possibleDuplicateCandidateRecordIds?: string[];
+};
+
+type SearchRequestRow = {
+  id: string;
+  original_text?: string;
+  originalText?: string;
+  search_criteria?: SearchCriteria;
+  searchCriteria?: SearchCriteria;
+  criteria_editable?: boolean;
+  criteriaEditable?: boolean;
+  creator_id?: string | null;
+  creatorId?: string | null;
+  created_at?: string;
+  createdAt?: string;
+};
+
+type CandidateNoteRow = {
+  id: string;
+  candidate_id?: string;
+  candidateId?: string;
+  content: string;
+  provenance: CandidateNote["provenance"];
+};
+
+export function createRecruitingMemoryRepositoryFromEnv(env: ApiEnvironment = process.env): RecruitingMemoryRepository {
+  if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
+    return createSupabaseRecruitingMemoryRepository({
+      supabaseUrl: env.SUPABASE_URL,
+      supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+    });
+  }
+
+  return createMemoryRecruitingMemoryRepository();
+}
+
+export function createSupabaseRecruitingMemoryRepository(options: {
+  supabaseUrl?: string;
+  supabaseServiceRoleKey?: string;
+  client?: SupabaseRecruitingMemoryClient;
+}): RecruitingMemoryRepository {
+  const client = options.client ?? createClient(options.supabaseUrl ?? "", options.supabaseServiceRoleKey ?? "");
+
+  return {
+    async importCandidateRecords(input) {
+      const createdAt = new Date().toISOString();
+      const candidateRows = input.candidateRecords.map(() => ({ created_at: createdAt }));
+      const insertedCandidates = await unwrap<CandidateRow[]>(
+        client.from("candidates").insert(candidateRows).select("id, created_at"),
+      );
+      const candidates = insertedCandidates.map(toCandidate);
+      const recordRows = input.candidateRecords.map((record, index) => {
+        const provenance: Provenance = {
+          sourceType: "imported",
+          sourceReference: {
+            fileName: input.fileName,
+            rowNumber: record.rowNumber,
+          },
+          creatorId: input.creatorId ?? null,
+          createdAt,
+          confirmerId: null,
+          confirmedAt: null,
+          uncertainty: null,
+          staleness: null,
+        };
+
+        return {
+          candidate_id: candidates[index].id,
+          row_number: record.rowNumber,
+          canonical_fields: record.canonicalFields,
+          source_fields: record.sourceFields,
+          source_field_mappings: record.sourceFieldMappings,
+          gaps: record.gaps,
+          search_terms: record.searchTerms,
+          provenance,
+          possible_duplicate_candidate_record_ids: [],
+        };
+      });
+      const insertedRecords = await unwrap<CandidateRecordRow[]>(
+        client.from("candidate_records").insert(recordRows).select("*"),
+      );
+      const insertedIds = new Set(insertedRecords.map((record) => record.id));
+      const allRecords = await listSupabaseCandidateRecords(client);
+
+      flagPossibleDuplicates(allRecords);
+      await persistDuplicateFlags(client, allRecords);
+
+      const candidateRecords = allRecords.filter((record) => insertedIds.has(record.id));
+
+      return {
+        imported: {
+          candidateCount: candidates.length,
+          candidateRecordCount: candidateRecords.length,
+        },
+        candidates,
+        candidateRecords,
+      };
+    },
+    async listCandidateRecords() {
+      const records = await listSupabaseCandidateRecords(client);
+      flagPossibleDuplicates(records);
+
+      return records;
+    },
+    async createSearchRequest(input) {
+      const row = await unwrap<SearchRequestRow>(
+        client
+          .from("search_requests")
+          .insert({
+            original_text: input.originalText,
+            search_criteria: input.searchCriteria,
+            criteria_editable: false,
+            creator_id: input.creatorId ?? null,
+          })
+          .select("*")
+          .single(),
+      );
+
+      return toSearchRequest(row);
+    },
+    async listSearchRequests() {
+      const rows = await unwrap<SearchRequestRow[]>(
+        client.from("search_requests").select("*").order("created_at", { ascending: true }),
+      );
+
+      return rows.map(toSearchRequest);
+    },
+    async candidateExists(candidateId) {
+      const result = await client.from("candidates").select("id").eq("id", candidateId).maybeSingle() as SupabaseQueryResult<CandidateRow>;
+
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+
+      return Boolean(result.data);
+    },
+    async confirmCandidateNote(input) {
+      const now = new Date().toISOString();
+      const provenance: CandidateNote["provenance"] = {
+        sourceType: input.sourceType,
+        creatorId: input.creatorId ?? null,
+        createdAt: now,
+        confirmerId: input.confirmerId,
+        confirmedAt: now,
+        uncertainty: null,
+        staleness: null,
+      };
+      const row = await unwrap<CandidateNoteRow>(
+        client
+          .from("candidate_notes")
+          .insert({
+            candidate_id: input.candidateId,
+            content: input.content,
+            provenance,
+          })
+          .select("*")
+          .single(),
+      );
+
+      return toCandidateNote(row);
+    },
+    async listCandidateNotes(candidateId) {
+      const rows = await unwrap<CandidateNoteRow[]>(
+        client.from("candidate_notes").select("*").eq("candidate_id", candidateId).order("id", { ascending: true }),
+      );
+
+      return rows.map(toCandidateNote);
+    },
+  };
+}
 
 export function createMemoryRecruitingMemoryRepository(): RecruitingMemoryRepository {
   const candidates: Candidate[] = [];
@@ -200,6 +406,102 @@ export function createMemoryRecruitingMemoryRepository(): RecruitingMemoryReposi
     async listCandidateNotes(candidateId) {
       return candidateNotes.filter((candidateNote) => candidateNote.candidateId === candidateId);
     },
+  };
+}
+
+async function unwrap<T>(query: PromiseLike<SupabaseQueryResult<T>>): Promise<T> {
+  const result = await query;
+
+  if (result.error) {
+    throw new Error(result.error.message);
+  }
+
+  if (result.data === null) {
+    throw new Error("Supabase returned no data.");
+  }
+
+  return result.data;
+}
+
+async function listSupabaseCandidateRecords(client: SupabaseRecruitingMemoryClient) {
+  const rows = await unwrap<CandidateRecordRow[]>(
+    client.from("candidate_records").select("*").order("row_number", { ascending: true }),
+  );
+
+  return rows.map(toCandidateRecord);
+}
+
+async function persistDuplicateFlags(client: SupabaseRecruitingMemoryClient, records: PersistedCandidateRecord[]) {
+  await Promise.all(
+    records.map((record) => {
+      return client
+        .from("candidate_records")
+        .update({ possible_duplicate_candidate_record_ids: record.possibleDuplicateCandidateRecordIds })
+        .eq("id", record.id);
+    }),
+  );
+}
+
+function toCandidate(row: CandidateRow): Candidate {
+  return {
+    id: row.id,
+    createdAt: row.created_at ?? row.createdAt ?? "",
+  };
+}
+
+function toCandidateRecord(row: CandidateRecordRow): PersistedCandidateRecord {
+  return {
+    id: row.id,
+    candidateId: row.candidate_id ?? row.candidateId ?? "",
+    rowNumber: row.row_number ?? row.rowNumber ?? 0,
+    canonicalFields: row.canonical_fields ?? row.canonicalFields ?? emptyCanonicalFields(),
+    sourceFields: row.source_fields ?? row.sourceFields ?? {},
+    sourceFieldMappings: row.source_field_mappings ?? row.sourceFieldMappings ?? {},
+    gaps: row.gaps ?? [],
+    searchTerms: row.search_terms ?? row.searchTerms ?? [],
+    provenance: row.provenance,
+    possibleDuplicateCandidateRecordIds: row.possible_duplicate_candidate_record_ids ?? row.possibleDuplicateCandidateRecordIds ?? [],
+  };
+}
+
+function toSearchRequest(row: SearchRequestRow): SearchRequestMemory {
+  return {
+    id: row.id,
+    originalText: row.original_text ?? row.originalText ?? "",
+    searchCriteria: row.search_criteria ?? row.searchCriteria ?? {},
+    criteriaEditable: false,
+    creatorId: row.creator_id ?? row.creatorId ?? null,
+    createdAt: row.created_at ?? row.createdAt ?? "",
+  };
+}
+
+function toCandidateNote(row: CandidateNoteRow): CandidateNote {
+  return {
+    id: row.id,
+    candidateId: row.candidate_id ?? row.candidateId ?? "",
+    content: row.content,
+    provenance: row.provenance,
+  };
+}
+
+function emptyCanonicalFields(): CandidateRecord["canonicalFields"] {
+  return {
+    name: "",
+    currentRole: "",
+    skills: {
+      raw: "",
+      terms: [],
+      normalizedTerms: [],
+    },
+    yearsExperience: "",
+    location: "",
+    englishLevel: "",
+    industries: [],
+    availability: "",
+    source: "",
+    lastContactDate: "",
+    salaryExpectationUsd: "",
+    notes: "",
   };
 }
 
