@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "recollect-memory"
+version = "0.1.0"
+description = "Recollect Memory Intelligence Layer for Serenity"
+requires-python = ">=3.10"
+
+[project]
+name = "recollect-memory"
+version = "0.1.0"
+description = "Memory Intelligence Layer for Serenity-specific retrieval, extraction, enrichment, and reasoning"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "httpx>=0.28.0",
+    "ruff>=0.7.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
