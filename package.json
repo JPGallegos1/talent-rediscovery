@@ -9,14 +9,14 @@
     "pnpm": ">=10"
   },
   "scripts": {
-    "dev": "concurrently -n client,server -c cyan,magenta \"pnpm --filter @recollect/admin dev\" \"pnpm --filter @recollect/api dev\"",
+    "dev": "turbo run dev --filter=./apps/*",
     "dev:client": "pnpm --filter @recollect/admin dev",
     "dev:server": "pnpm --filter @recollect/api dev",
-    "build": "pnpm --filter @recollect/domain check && pnpm --filter @recollect/api check && pnpm --filter @recollect/admin build",
+    "build": "turbo run build --filter=./apps/* --filter=./packages/*",
     "preview": "pnpm --filter @recollect/admin preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "check": "pnpm --filter @recollect/domain check && pnpm --filter @recollect/api check && pnpm --filter @recollect/admin check && vitest run",
+    "check": "turbo run check --filter=./apps/* --filter=./packages/* && vitest run",
     "check:csv": "vitest run tests/csv-candidate-records.test.ts",
     "check:search-criteria": "vitest run tests/search-criteria.test.ts",
     "check:shortlist": "vitest run tests/shortlist-matches.test.ts",
@@ -25,11 +25,11 @@
     "check:api-boundary": "vitest run tests/api-boundary.test.ts"
   },
   "dependencies": {
-    "@recollect/api": "workspace:*",
-    "@recollect/domain": "workspace:*",
     "@ai-sdk/openai": "^3.0.63",
     "@ai-sdk/react": "^3.0.184",
     "@hono/node-server": "^2.0.2",
+    "@recollect/api": "workspace:*",
+    "@recollect/domain": "workspace:*",
     "@tanstack/react-router": "^1.169.2",
     "@tanstack/react-table": "^8.21.3",
     "ai": "^6.0.182",
@@ -45,9 +45,9 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
-    "concurrently": "^9.2.1",
     "tailwindcss": "^4.3.0",
     "tsx": "^4.21.1",
+    "turbo": "^2.9.14",
     "typescript": "^6.0.3",
     "vite": "^8.0.12",
     "vitest": "^4.1.6"

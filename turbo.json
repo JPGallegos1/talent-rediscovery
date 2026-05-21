@@ -1,0 +1,23 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "check": {
+      "dependsOn": ["^check"],
+      "outputs": []
+    },
+    "build": {
+      "dependsOn": ["^check"],
+      "outputs": ["dist/**"]
+    },
+    "@recollect/api#build": {
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "preview": {
+      "cache": false
+    }
+  }
+}
