@@ -178,52 +178,63 @@ export function createSupabaseRecruitingMemoryRepository(options: {
         client.from("candidates").insert(candidateRows).select("id, created_at"),
       );
       const candidates = insertedCandidates.map(toCandidate);
-      const recordRows = input.candidateRecords.map((record, index) => {
-        const provenance: Provenance = {
-          sourceType: "imported",
-          sourceReference: {
-            fileName: input.fileName,
-            rowNumber: record.rowNumber,
-          },
-          creatorId: input.creatorId ?? null,
-          createdAt,
-          confirmerId: null,
-          confirmedAt: null,
-          uncertainty: null,
-          staleness: null,
-        };
+      let insertedRecordIds: string[] = [];
+
+      try {
+        const recordRows = input.candidateRecords.map((record, index) => {
+          const provenance: Provenance = {
+            sourceType: "imported",
+            sourceReference: {
+              fileName: input.fileName,
+              rowNumber: record.rowNumber,
+            },
+            creatorId: input.creatorId ?? null,
+            createdAt,
+            confirmerId: null,
+            confirmedAt: null,
+            uncertainty: null,
+            staleness: null,
+          };
+
+          return {
+            candidate_id: candidates[index].id,
+            row_number: record.rowNumber,
+            canonical_fields: record.canonicalFields,
+            source_fields: record.sourceFields,
+            source_field_mappings: record.sourceFieldMappings,
+            gaps: record.gaps,
+            search_terms: record.searchTerms,
+            provenance,
+            possible_duplicate_candidate_record_ids: [],
+          };
+        });
+        const insertedRecords = await unwrap<CandidateRecordRow[]>(
+          client.from("candidate_records").insert(recordRows).select("*"),
+        );
+        insertedRecordIds = insertedRecords.map((record) => record.id);
+        const insertedIds = new Set(insertedRecordIds);
+        const allRecords = await listSupabaseCandidateRecords(client);
+
+        flagPossibleDuplicates(allRecords);
+        await persistDuplicateFlags(client, allRecords);
+
+        const candidateRecords = allRecords.filter((record) => insertedIds.has(record.id));
 
         return {
-          candidate_id: candidates[index].id,
-          row_number: record.rowNumber,
-          canonical_fields: record.canonicalFields,
-          source_fields: record.sourceFields,
-          source_field_mappings: record.sourceFieldMappings,
-          gaps: record.gaps,
-          search_terms: record.searchTerms,
-          provenance,
-          possible_duplicate_candidate_record_ids: [],
+          imported: {
+            candidateCount: candidates.length,
+            candidateRecordCount: candidateRecords.length,
+          },
+          candidates,
+          candidateRecords,
         };
-      });
-      const insertedRecords = await unwrap<CandidateRecordRow[]>(
-        client.from("candidate_records").insert(recordRows).select("*"),
-      );
-      const insertedIds = new Set(insertedRecords.map((record) => record.id));
-      const allRecords = await listSupabaseCandidateRecords(client);
-
-      flagPossibleDuplicates(allRecords);
-      await persistDuplicateFlags(client, allRecords);
-
-      const candidateRecords = allRecords.filter((record) => insertedIds.has(record.id));
-
-      return {
-        imported: {
-          candidateCount: candidates.length,
-          candidateRecordCount: candidateRecords.length,
-        },
-        candidates,
-        candidateRecords,
-      };
+      } catch (error) {
+        await rollbackCandidateRecordImport(client, {
+          candidateIds: candidates.map((candidate) => candidate.id),
+          candidateRecordIds: insertedRecordIds,
+        });
+        throw error;
+      }
     },
     async listCandidateRecords() {
       const records = await listSupabaseCandidateRecords(client);
@@ -434,12 +445,36 @@ async function listSupabaseCandidateRecords(client: SupabaseRecruitingMemoryClie
 async function persistDuplicateFlags(client: SupabaseRecruitingMemoryClient, records: PersistedCandidateRecord[]) {
   await Promise.all(
     records.map((record) => {
-      return client
-        .from("candidate_records")
-        .update({ possible_duplicate_candidate_record_ids: record.possibleDuplicateCandidateRecordIds })
-        .eq("id", record.id);
+      return unwrap<Pick<CandidateRecordRow, "id">[]>(
+        client
+          .from("candidate_records")
+          .update({ possible_duplicate_candidate_record_ids: record.possibleDuplicateCandidateRecordIds })
+          .eq("id", record.id)
+          .select("id"),
+      );
     }),
   );
+}
+
+async function rollbackCandidateRecordImport(
+  client: SupabaseRecruitingMemoryClient,
+  rollback: { candidateIds: string[]; candidateRecordIds: string[] },
+) {
+  try {
+    if (rollback.candidateRecordIds.length > 0) {
+      await unwrap<Pick<CandidateRecordRow, "id">[]>(
+        client.from("candidate_records").delete().in("id", rollback.candidateRecordIds).select("id"),
+      );
+    }
+
+    if (rollback.candidateIds.length > 0) {
+      await unwrap<Pick<CandidateRow, "id">[]>(
+        client.from("candidates").delete().in("id", rollback.candidateIds).select("id"),
+      );
+    }
+  } catch (rollbackError) {
+    console.error("Supabase Candidate Record import rollback failed", rollbackError);
+  }
 }
 
 function toCandidate(row: CandidateRow): Candidate {
