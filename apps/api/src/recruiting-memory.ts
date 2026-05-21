@@ -9,7 +9,7 @@ type SupabaseQueryResult<T> = {
   error: { message: string } | null;
 };
 
-type SupabaseRecruitingMemoryClient = {
+export type SupabaseRecruitingMemoryClient = {
   from(table: string): any;
 };
 
@@ -152,11 +152,15 @@ type CandidateNoteRow = {
   provenance: CandidateNote["provenance"];
 };
 
-export function createRecruitingMemoryRepositoryFromEnv(env: ApiEnvironment = process.env): RecruitingMemoryRepository {
+export function createRecruitingMemoryRepositoryFromEnv(
+  env: ApiEnvironment = process.env,
+  options: { client?: SupabaseRecruitingMemoryClient } = {},
+): RecruitingMemoryRepository {
   if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
     return createSupabaseRecruitingMemoryRepository({
       supabaseUrl: env.SUPABASE_URL,
       supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+      client: options.client,
     });
   }
 
