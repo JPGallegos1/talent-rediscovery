@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { CandidateRecord } from "@recollect/domain/csv-candidate-records.js";
 import type { SearchCriteria } from "@recollect/domain/search-criteria.js";
+import { createMemorySync, createNoopMemorySync, type MemorySync } from "./memory-sync.js";
 
 type ApiEnvironment = Record<string, string | undefined>;
 
@@ -154,25 +155,34 @@ type CandidateNoteRow = {
 
 export function createRecruitingMemoryRepositoryFromEnv(
   env: ApiEnvironment = process.env,
-  options: { client?: SupabaseRecruitingMemoryClient } = {},
+  options: { client?: SupabaseRecruitingMemoryClient; memorySync?: MemorySync } = {},
 ): RecruitingMemoryRepository {
-  if (env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
+  const memorySync = options.memorySync ?? (
+    env.SUPABASE_URL && env.SUPABASE_SECRET_KEY
+      ? createMemorySync(env.MEM0_API_URL)
+      : createNoopMemorySync()
+  );
+
+  if (env.SUPABASE_URL && env.SUPABASE_SECRET_KEY) {
     return createSupabaseRecruitingMemoryRepository({
       supabaseUrl: env.SUPABASE_URL,
-      supabaseServiceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY,
+      supabaseSecretKey: env.SUPABASE_SECRET_KEY,
       client: options.client,
+      memorySync,
     });
   }
 
-  return createMemoryRecruitingMemoryRepository();
+  return createMemoryRecruitingMemoryRepository({ memorySync });
 }
 
 export function createSupabaseRecruitingMemoryRepository(options: {
   supabaseUrl?: string;
-  supabaseServiceRoleKey?: string;
+  supabaseSecretKey?: string;
   client?: SupabaseRecruitingMemoryClient;
+  memorySync?: MemorySync;
 }): RecruitingMemoryRepository {
-  const client = options.client ?? createClient(options.supabaseUrl ?? "", options.supabaseServiceRoleKey ?? "");
+  const client = options.client ?? createClient(options.supabaseUrl ?? "", options.supabaseSecretKey ?? "");
+  const memorySync = options.memorySync ?? createNoopMemorySync();
 
   return {
     async importCandidateRecords(input) {
@@ -224,6 +234,8 @@ export function createSupabaseRecruitingMemoryRepository(options: {
 
         const candidateRecords = allRecords.filter((record) => insertedIds.has(record.id));
 
+        scheduleMemorySync(() => memorySync.syncCandidateImport(candidates, candidateRecords));
+
         return {
           imported: {
             candidateCount: candidates.length,
@@ -260,7 +272,9 @@ export function createSupabaseRecruitingMemoryRepository(options: {
           .single(),
       );
 
-      return toSearchRequest(row);
+      const searchRequest = toSearchRequest(row);
+      scheduleMemorySync(() => memorySync.syncSearchRequest(searchRequest));
+      return searchRequest;
     },
     async listSearchRequests() {
       const rows = await unwrap<SearchRequestRow[]>(
@@ -301,7 +315,9 @@ export function createSupabaseRecruitingMemoryRepository(options: {
           .single(),
       );
 
-      return toCandidateNote(row);
+      const note = toCandidateNote(row);
+      scheduleMemorySync(() => memorySync.syncConfirmedNote(note));
+      return note;
     },
     async listCandidateNotes(candidateId) {
       const rows = await unwrap<CandidateNoteRow[]>(
@@ -313,7 +329,8 @@ export function createSupabaseRecruitingMemoryRepository(options: {
   };
 }
 
-export function createMemoryRecruitingMemoryRepository(): RecruitingMemoryRepository {
+export function createMemoryRecruitingMemoryRepository(options: { memorySync?: MemorySync } = {}): RecruitingMemoryRepository {
+  const memorySync = options.memorySync ?? createNoopMemorySync();
   const candidates: Candidate[] = [];
   const candidateRecords: PersistedCandidateRecord[] = [];
   const searchRequests: SearchRequestMemory[] = [];
@@ -365,6 +382,8 @@ export function createMemoryRecruitingMemoryRepository(): RecruitingMemoryReposi
 
       flagPossibleDuplicates(candidateRecords);
 
+      scheduleMemorySync(() => memorySync.syncCandidateImport(importedCandidates, importedCandidateRecords));
+
       return {
         imported: {
           candidateCount: importedCandidates.length,
@@ -388,6 +407,8 @@ export function createMemoryRecruitingMemoryRepository(): RecruitingMemoryReposi
       };
       nextSearchRequestId += 1;
       searchRequests.push(searchRequest);
+
+      scheduleMemorySync(() => memorySync.syncSearchRequest(searchRequest));
 
       return searchRequest;
     },
@@ -416,12 +437,24 @@ export function createMemoryRecruitingMemoryRepository(): RecruitingMemoryReposi
       nextCandidateNoteId += 1;
       candidateNotes.push(candidateNote);
 
+      scheduleMemorySync(() => memorySync.syncConfirmedNote(candidateNote));
+
       return candidateNote;
     },
     async listCandidateNotes(candidateId) {
       return candidateNotes.filter((candidateNote) => candidateNote.candidateId === candidateId);
     },
   };
+}
+
+function scheduleMemorySync(sync: () => Promise<void>): void {
+  try {
+    void sync().catch((error) => {
+      console.error("mem0 sync error:", error);
+    });
+  } catch (error) {
+    console.error("mem0 sync error:", error);
+  }
 }
 
 async function unwrap<T>(query: PromiseLike<SupabaseQueryResult<T>>): Promise<T> {

@@ -132,7 +132,7 @@ describe("Supabase-backed API memory loop", () => {
     const app = createApiApp({
       env: {
         SUPABASE_URL: "https://recollect.test.supabase.co",
-        SUPABASE_SERVICE_ROLE_KEY: "service-role-test-key",
+        SUPABASE_SECRET_KEY: "secret-test-key",
       },
       supabaseClient,
     });
