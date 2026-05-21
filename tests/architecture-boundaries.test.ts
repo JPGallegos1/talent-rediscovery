@@ -64,12 +64,13 @@ describe("architecture boundaries", () => {
 
   it("keeps the API from importing domain logic through the admin source tree", async () => {
     const apiFiles = await collectSourceFiles(join(workspaceRoot, "apps", "api", "src"));
+    const forbiddenAdminImportPattern = /from\s+["'][^"']*(?:apps\/admin\/src|admin\/src|@recollect\/admin)(?:\/|["'])/;
     const violations: string[] = [];
 
     for (const file of apiFiles) {
       const content = await readFile(file, "utf8");
 
-      if (/from\s+["']\.\.\/src\//.test(content)) {
+      if (forbiddenAdminImportPattern.test(content)) {
         violations.push(file);
       }
     }
