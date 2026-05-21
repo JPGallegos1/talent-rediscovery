@@ -10,6 +10,7 @@ import {
   createRecruitingMemoryRepositoryFromEnv,
   type CandidateNoteSourceType,
   type RecruitingMemoryRepository,
+  type SupabaseRecruitingMemoryClient,
 } from "./recruiting-memory.js";
 import { evaluateSerenityMemoryAction } from "./serenity-memory-policy.js";
 
@@ -18,6 +19,7 @@ type ApiEnvironment = Record<string, string | undefined>;
 type ApiAppOptions = {
   env?: ApiEnvironment;
   recruitingMemory?: RecruitingMemoryRepository;
+  supabaseClient?: SupabaseRecruitingMemoryClient;
 };
 
 type ChatPayload = {
@@ -119,7 +121,7 @@ export function getChatModel(env: ApiEnvironment = process.env) {
 
 export function createApiApp(options: ApiAppOptions = {}) {
   const env = options.env ?? process.env;
-  const recruitingMemory = options.recruitingMemory ?? createRecruitingMemoryRepositoryFromEnv(env);
+  const recruitingMemory = options.recruitingMemory ?? createRecruitingMemoryRepositoryFromEnv(env, { client: options.supabaseClient });
   const openai = createOpenAI({
     apiKey: env.OPENAI_API_KEY,
   });
