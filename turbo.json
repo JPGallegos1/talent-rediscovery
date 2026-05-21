@@ -10,6 +10,7 @@
       "outputs": ["dist/**"]
     },
     "@recollect/api#build": {
+      "dependsOn": ["^check"],
       "outputs": []
     },
     "dev": {
