@@ -1,6 +1,6 @@
-import type { CandidateMemory } from "./candidate-memory.js";
-import type { CandidateRecord } from "./csv-candidate-records.js";
-import type { SearchCriteria } from "./search-criteria.js";
+import type { CandidateMemory } from "@recollect/domain/candidate-memory.js";
+import type { CandidateRecord } from "@recollect/domain/csv-candidate-records.js";
+import type { SearchCriteria } from "@recollect/domain/search-criteria.js";
 
 export type ImportTalentPoolResult = {
   imported: {

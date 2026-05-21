@@ -1,0 +1,46 @@
+{
+  "name": "@recollect/domain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit -p tsconfig.json && node --check src/index.js && node --check src/csv-candidate-records.js && node --check src/search-criteria.js && node --check src/shortlist-matches.js && node --check src/message-draft.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./candidate-memory.js": {
+      "types": "./src/candidate-memory.ts",
+      "default": "./src/candidate-memory.ts"
+    },
+    "./copilot-tool-output.js": {
+      "types": "./src/copilot-tool-output.ts",
+      "default": "./src/copilot-tool-output.ts"
+    },
+    "./csv-candidate-records.js": {
+      "types": "./src/csv-candidate-records.d.ts",
+      "default": "./src/csv-candidate-records.js"
+    },
+    "./intelligence-layer.js": {
+      "types": "./src/intelligence-layer.ts",
+      "default": "./src/intelligence-layer.ts"
+    },
+    "./message-draft.js": {
+      "types": "./src/message-draft.d.ts",
+      "default": "./src/message-draft.js"
+    },
+    "./search-criteria.js": {
+      "types": "./src/search-criteria.d.ts",
+      "default": "./src/search-criteria.js"
+    },
+    "./shortlist-matches.js": {
+      "types": "./src/shortlist-matches.d.ts",
+      "default": "./src/shortlist-matches.js"
+    }
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}

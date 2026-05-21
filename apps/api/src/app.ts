@@ -2,9 +2,9 @@ import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from 
 import { createOpenAI } from "@ai-sdk/openai";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { deriveCandidateMemoryGaps } from "../src/candidate-memory.js";
-import { parseCsvTalentPool } from "../src/csv-candidate-records.js";
-import { interpretSearchCriteria } from "../src/search-criteria.js";
+import { deriveCandidateMemoryGaps } from "@recollect/domain/candidate-memory.js";
+import { parseCsvTalentPool } from "@recollect/domain/csv-candidate-records.js";
+import { interpretSearchCriteria } from "@recollect/domain/search-criteria.js";
 import { buildSystemPrompt, intelligenceActionTools } from "./intelligence-handler.js";
 import {
   createMemoryRecruitingMemoryRepository,

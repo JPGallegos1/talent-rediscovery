@@ -4,7 +4,7 @@ import {
   formatProvenanceChips,
   splitMatchEvidenceByMemorySource,
   type CandidateMemoryRecord,
-} from "../src/candidate-memory.js";
+} from "@recollect/domain/candidate-memory.js";
 
 describe("Candidate Memory helpers", () => {
   it("separates Match evidence from Candidate Records and Candidate Notes", () => {

@@ -1,5 +1,5 @@
-import type { CandidateRecord } from "../src/csv-candidate-records.js";
-import type { SearchCriteria } from "../src/search-criteria.js";
+import type { CandidateRecord } from "@recollect/domain/csv-candidate-records.js";
+import type { SearchCriteria } from "@recollect/domain/search-criteria.js";
 
 export type Candidate = {
   id: string;

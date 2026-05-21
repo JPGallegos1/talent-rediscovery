@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateSerenityMemoryAction } from "../server/serenity-memory-policy.js";
+import { evaluateSerenityMemoryAction } from "@recollect/api/serenity-memory-policy.js";
 
 describe("Serenity memory action policy", () => {
   it("allows read-only Candidate Memory actions without durable writes", () => {

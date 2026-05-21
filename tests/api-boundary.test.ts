@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createApiApp } from "../server/app.js";
+import { createApiApp } from "@recollect/api/app.js";
 
 describe("API boundary", () => {
   it("exposes health without starting the listener", async () => {

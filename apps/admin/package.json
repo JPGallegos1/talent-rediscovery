@@ -1,0 +1,31 @@
+{
+  "name": "@recollect/admin",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite .",
+    "build": "tsc --noEmit -p tsconfig.json && vite build .",
+    "check": "tsc --noEmit -p tsconfig.json",
+    "preview": "vite preview ."
+  },
+  "dependencies": {
+    "@ai-sdk/react": "^3.0.184",
+    "@recollect/domain": "workspace:*",
+    "@tanstack/react-router": "^1.169.2",
+    "@tanstack/react-table": "^8.21.3",
+    "ai": "^6.0.182",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "zustand": "^5.0.13"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.12"
+  }
+}

@@ -1,9 +1,9 @@
 import type { UIMessage } from "ai";
 import { describe, expect, it } from "vitest";
-import { useAppStore } from "../src/app-store.js";
-import { parseCsvTalentPool } from "../src/csv-candidate-records.js";
-import { interpretSearchCriteria } from "../src/search-criteria.js";
-import { buildShortlist } from "../src/shortlist-matches.js";
+import { useAppStore } from "../apps/admin/src/app-store.js";
+import { parseCsvTalentPool } from "@recollect/domain/csv-candidate-records.js";
+import { interpretSearchCriteria } from "@recollect/domain/search-criteria.js";
+import { buildShortlist } from "@recollect/domain/shortlist-matches.js";
 
 function resetStore() {
   useAppStore.setState(useAppStore.getInitialState(), true);

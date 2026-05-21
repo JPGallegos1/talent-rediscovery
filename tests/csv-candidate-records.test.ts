@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { parseCsvTalentPool } from "../src/csv-candidate-records.js";
+import { parseCsvTalentPool } from "@recollect/domain/csv-candidate-records.js";
 
 describe("CSV Talent Pool parsing", () => {
   it("parses the synthetic Talent Pool File into normalized Candidate Records", async () => {

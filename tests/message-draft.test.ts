@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "../src/message-draft.js";
-import type { Match } from "../src/shortlist-matches.js";
+import { canDraftMessageFromSuggestedNextAction, draftMessageFromMatch } from "@recollect/domain/message-draft.js";
+import type { Match } from "@recollect/domain/shortlist-matches.js";
 
 const match = {
   candidateRecord: {

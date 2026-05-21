@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const sourceExtensions = new Set([".ts", ".tsx", ".js", ".jsx"]);
+const workspaceRoot = fileURLToPath(new URL("..", import.meta.url));
 
 async function collectSourceFiles(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -24,7 +25,7 @@ async function collectSourceFiles(directory: string): Promise<string[]> {
 
 describe("architecture boundaries", () => {
   it("keeps the admin layer from directly accessing Supabase", async () => {
-    const adminFiles = await collectSourceFiles(fileURLToPath(new URL("../src", import.meta.url)));
+    const adminFiles = await collectSourceFiles(join(workspaceRoot, "apps", "admin", "src"));
     const forbiddenPatterns = [/@supabase\/supabase-js/, /createClient\s*\(/, /SUPABASE_/];
     const violations: string[] = [];
 
@@ -32,6 +33,43 @@ describe("architecture boundaries", () => {
       const content = await readFile(file, "utf8");
 
       if (forbiddenPatterns.some((pattern) => pattern.test(content))) {
+        violations.push(file);
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps the domain package free of runtime and app dependencies", async () => {
+    const domainFiles = await collectSourceFiles(join(workspaceRoot, "packages", "domain", "src"));
+    const forbiddenPatterns = [
+      /from\s+["'](?:\.\.\/\.\.\/|\.\.\/\.\.\\)/,
+      /from\s+["'](?:\.\.\/src|\.\.\\src|\.\.\/server|\.\.\\server)/,
+      /from\s+["'](?:@supabase\/supabase-js|hono|ai|@ai-sdk\/|react|react-dom|zustand)/,
+      /process\.env/,
+      /SUPABASE_/,
+    ];
+    const violations: string[] = [];
+
+    for (const file of domainFiles) {
+      const content = await readFile(file, "utf8");
+
+      if (forbiddenPatterns.some((pattern) => pattern.test(content))) {
+        violations.push(file);
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps the API from importing domain logic through the admin source tree", async () => {
+    const apiFiles = await collectSourceFiles(join(workspaceRoot, "apps", "api", "src"));
+    const violations: string[] = [];
+
+    for (const file of apiFiles) {
+      const content = await readFile(file, "utf8");
+
+      if (/from\s+["']\.\.\/src\//.test(content)) {
         violations.push(file);
       }
     }
