@@ -1,9 +1,8 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type ChatAddToolOutputFunction, type ChatOnToolCallCallback, type UIMessage } from "ai";
-import { createRoute, createRootRoute, createRouter, Link, Outlet, RouterProvider, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from "@tanstack/react-table";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { createRoot } from "react-dom/client";
 import { formatProvenanceChips, splitMatchEvidenceByMemorySource, type CandidateMemory } from "@recollect/domain/candidate-memory.js";
 import { createSearchRequestFailureOutput } from "@recollect/domain/copilot-tool-output.js";
 import type { CandidateRecord } from "@recollect/domain/csv-candidate-records.js";
@@ -13,7 +12,6 @@ import type { SearchCriteria } from "@recollect/domain/search-criteria.js";
 import { buildShortlist, type Match } from "@recollect/domain/shortlist-matches.js";
 import { createSearchRequest, getCandidateMemory, importCsvTalentPool, listCandidateNotes } from "./api-client.js";
 import { useAppStore, type ComparisonReport, type CopilotErrorState } from "./app-store.js";
-import "./styles.css";
 
 type CopilotErrorPayload = {
   error?: {
@@ -225,25 +223,7 @@ async function parseCopilotErrorResponse(response: Response): Promise<CopilotErr
   };
 }
 
-function RootLayout() {
-  return (
-    <div className="min-h-screen bg-paper text-ink lg:h-screen lg:overflow-hidden">
-      <div className="flex min-h-screen flex-col lg:h-screen lg:flex-row">
-        <SideNav />
-
-        <div className="flex min-w-0 flex-1 flex-col lg:ml-[280px]">
-          <TopAppBar />
-          <MobileNav />
-          <main className="custom-scrollbar min-w-0 flex-1 overflow-y-auto bg-paper px-5 py-6 sm:px-8 lg:px-10 lg:py-8">
-            <Outlet />
-          </main>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SideNav() {
+export function SideNav() {
   return (
     <aside className="hidden h-screen w-[280px] shrink-0 flex-col border-r border-outline-soft/40 bg-surface px-4 py-6 lg:fixed lg:left-0 lg:top-0 lg:z-20 lg:flex">
       <Link to="/" className="flex items-center gap-3 px-4">
@@ -283,7 +263,7 @@ function SideNav() {
   );
 }
 
-function TopAppBar() {
+export function TopAppBar() {
   return (
     <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-outline-soft/40 bg-paper/90 px-5 shadow-sm backdrop-blur-md sm:px-8 lg:px-10">
       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -318,7 +298,7 @@ function TopAppBar() {
   );
 }
 
-function MobileNav() {
+export function MobileNav() {
   return (
     <nav className="flex gap-2 overflow-x-auto border-b border-outline-soft/40 bg-surface px-5 py-3 text-sm font-semibold sm:px-8 lg:hidden">
       <NavLink to="/" label="Home" icon="psychology" compact />
@@ -343,7 +323,7 @@ function NavLink({ to, label, icon, compact = false }: { to: "/" | "/talent-pool
   );
 }
 
-function HomeRoute() {
+export function HomeRoute() {
   const candidateRecordCount = useAppStore((state) => state.candidateRecordCount);
   const shortlist = useAppStore((state) => state.shortlist);
   const copilotError = useAppStore((state) => state.copilotError);
@@ -674,7 +654,7 @@ function CopilotServerErrorHomeView({ error, onRetry }: { error: CopilotErrorSta
   );
 }
 
-function TalentPoolRoute() {
+export function TalentPoolRoute() {
   const candidateRecords = useAppStore((state) => state.candidateRecords);
   const talentPoolFileName = useAppStore((state) => state.talentPoolFileName);
   const loadTalentPool = useAppStore((state) => state.loadTalentPool);
@@ -974,8 +954,7 @@ function normalizeSourceValue(source: unknown): string {
     .join(" / ");
 }
 
-function MatchDetailRoute() {
-  const { matchId } = matchRoute.useParams();
+export function MatchDetailRoute({ matchId }: { matchId: string }) {
   const shortlist = useAppStore((state) => state.shortlist);
   const searchRequest = useAppStore((state) => state.searchRequest);
   const draftText = useAppStore((state) => state.messageDraftsByMatchId[matchId] || "");
@@ -1423,7 +1402,7 @@ function getProvenanceChipClass(chip: string) {
   return "bg-surface-high text-muted";
 }
 
-function ComparisonReportRoute() {
+export function ComparisonReportRoute() {
   const comparisonReport = useAppStore((state) => state.comparisonReport);
 
   if (!comparisonReport) {
@@ -2125,45 +2104,4 @@ function CopilotPanel({
   );
 }
 
-const rootRoute = createRootRoute({ component: RootLayout });
 
-const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/",
-  component: HomeRoute,
-});
-
-const talentPoolRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/talent-pool",
-  component: TalentPoolRoute,
-});
-
-const matchRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/matches/$matchId",
-  component: MatchDetailRoute,
-});
-
-const compareRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/to-compare",
-  component: ComparisonReportRoute,
-});
-
-const routeTree = rootRoute.addChildren([indexRoute, talentPoolRoute, matchRoute, compareRoute]);
-const router = createRouter({ routeTree });
-
-declare module "@tanstack/react-router" {
-  interface Register {
-    router: typeof router;
-  }
-}
-
-const rootElement = document.getElementById("root");
-
-if (!rootElement) {
-  throw new Error("Missing root element");
-}
-
-createRoot(rootElement).render(<RouterProvider router={router} />);
